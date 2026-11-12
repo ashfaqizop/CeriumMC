@@ -33,7 +33,7 @@ GitHub-ready project setup.
 
 **Done when:** the repository is public and every document renders correctly on GitHub.
 
-## Phase 1: Foundation & CI 🟨
+## Phase 1: Foundation & CI ✅ (2026-11-12)
 
 - Cargo workspace layout and coding standards; `rust-toolchain`, rustfmt and clippy configuration.
 - CI matrix: Linux x86_64, Windows, AArch64/ARMv7 cross-builds and Android (Termux) targets.
