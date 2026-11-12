@@ -1,0 +1,34 @@
+name: Feature / design proposal
+description: Propose a feature or a design change
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: Milestone
+      options:
+        - Q1 - Vanilla parity
+        - Q2 - .HCR region format
+        - Q3 - Plugins API
+        - Q4 - Plugin library
+        - Q5 - Pooled multi-machine server
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+    validations:
+      required: true
+  - type: checkboxes
+    id: parity
+    attributes:
+      label: Parity
+      options:
+        - label: This does not change vanilla-observable behaviour, or the change is opt-in.
