@@ -60,18 +60,17 @@ pub fn sin_table() -> &'static [f32] {
     })
 }
 
-/// `(ASIN_TAB, COS_TAB)`: `asin(i / 256)` and `cos(asin(i / 256))` for `i` in `0..=256`.
+/// `(ASIN_TAB, COS_TAB)`: `Math.asin(i / 256)` and `Math.cos` of that, for `i` in `0..=256`.
+///
+/// The values are embedded exactly as HotSpot on x86_64 computes them (see
+/// `parity/tables/AtanTables.java`): its `Math.cos` is not reproducible by any portable
+/// implementation (entry 61 is not even correctly rounded).
 fn atan_tables() -> &'static AtanTables {
     static TABLES: OnceLock<AtanTables> = OnceLock::new();
     TABLES.get_or_init(|| {
-        let mut asin_tab = [0.0; ATAN_TABLE_SIZE];
-        let mut cos_tab = [0.0; ATAN_TABLE_SIZE];
-        for (index, (asin, cos)) in asin_tab.iter_mut().zip(&mut cos_tab).enumerate() {
-            let value = index as f64 / 256.0;
-            *asin = libm::asin(value);
-            *cos = libm::cos(*asin);
-        }
-        (asin_tab, cos_tab)
+        let asin = crate::atan_tables::ASIN_BITS.map(f64::from_bits);
+        let cos = crate::atan_tables::COS_BITS.map(f64::from_bits);
+        (asin, cos)
     })
 }
 

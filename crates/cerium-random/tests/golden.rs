@@ -127,13 +127,23 @@ fn id(case: &Case, arg: usize) -> usize {
 
 impl State {
     fn add_gen(&mut self, case: &Case, arg: usize, generator: Gen) -> Vec<Value> {
-        assert_eq!(id(case, arg), self.gens.len(), "line {}: id mismatch", case.line);
+        assert_eq!(
+            id(case, arg),
+            self.gens.len(),
+            "line {}: id mismatch",
+            case.line
+        );
         self.gens.push(generator);
         Vec::new()
     }
 
     fn add_fac(&mut self, case: &Case, arg: usize, fac: Fac) -> Vec<Value> {
-        assert_eq!(id(case, arg), self.facs.len(), "line {}: id mismatch", case.line);
+        assert_eq!(
+            id(case, arg),
+            self.facs.len(),
+            "line {}: id mismatch",
+            case.line
+        );
         self.facs.push(fac);
         Vec::new()
     }

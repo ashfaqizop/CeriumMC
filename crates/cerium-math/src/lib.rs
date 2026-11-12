@@ -20,5 +20,6 @@
     reason = "these are deliberate, bit-exact ports of Java's primitive conversions and comparisons"
 )]
 
+mod atan_tables;
 pub mod java;
 pub mod mth;

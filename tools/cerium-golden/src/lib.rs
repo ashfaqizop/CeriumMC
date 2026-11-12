@@ -115,7 +115,7 @@ impl Value {
 }
 
 fn decode_hex_string(raw: &str) -> Result<String, String> {
-    if raw.len() % 2 != 0 {
+    if !raw.len().is_multiple_of(2) {
         return Err("odd number of hex digits".to_owned());
     }
     let bytes = (0..raw.len())
@@ -238,7 +238,10 @@ fn parse_values<'a>(
 pub fn load(file: &str) -> Option<Vec<Case>> {
     let required = std::env::var("CERIUM_REQUIRE_GOLDEN").is_ok_and(|v| v == "1");
     let Some(dir) = std::env::var_os("CERIUM_GOLDEN_DIR") else {
-        assert!(!required, "CERIUM_REQUIRE_GOLDEN=1 but CERIUM_GOLDEN_DIR is not set");
+        assert!(
+            !required,
+            "CERIUM_REQUIRE_GOLDEN=1 but CERIUM_GOLDEN_DIR is not set"
+        );
         eprintln!("skipping golden test {file}: CERIUM_GOLDEN_DIR is not set");
         return None;
     };

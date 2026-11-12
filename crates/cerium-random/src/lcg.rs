@@ -217,11 +217,19 @@ mod tests {
         let mut legacy = LegacyRandom::new(7);
         legacy.next_gaussian();
         legacy.set_seed(7);
-        assert_eq!(legacy.next_gaussian().to_bits(), first, "reseeding clears the cache");
+        assert_eq!(
+            legacy.next_gaussian().to_bits(),
+            first,
+            "reseeding clears the cache"
+        );
 
         let mut thread_safe = ThreadSafeLegacyRandom::new(7);
         thread_safe.next_gaussian();
         thread_safe.set_seed(7);
-        assert_eq!(thread_safe.next_gaussian().to_bits(), second, "the cache survives");
+        assert_eq!(
+            thread_safe.next_gaussian().to_bits(),
+            second,
+            "the cache survives"
+        );
     }
 }

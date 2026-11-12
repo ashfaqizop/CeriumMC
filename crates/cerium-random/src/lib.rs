@@ -178,6 +178,9 @@ mod tests {
     #[test]
     fn units_are_the_vanilla_constants() {
         assert_eq!(FLOAT_UNIT, "5.9604645E-8".parse::<f32>().unwrap());
-        assert_eq!(DOUBLE_UNIT, "1.1102230246251565E-16".parse::<f64>().unwrap());
+        assert_eq!(
+            DOUBLE_UNIT,
+            "1.1102230246251565E-16".parse::<f64>().unwrap()
+        );
     }
 }

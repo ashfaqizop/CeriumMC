@@ -39,36 +39,35 @@ const INITIAL_STATE: [u32; 4] = [0x6745_2301, 0xEFCD_AB89, 0x98BA_DCFE, 0x1032_5
 #[must_use]
 pub fn digest(data: &[u8]) -> [u8; 16] {
     let mut state = INITIAL_STATE;
-    let mut blocks = data.chunks_exact(64);
-    for block in &mut blocks {
+    let (blocks, rest) = data.as_chunks::<64>();
+    for block in blocks {
         compress(&mut state, block);
     }
 
     // Padding: 0x80, zeros, then the message length in bits (little-endian u64).
-    let rest = blocks.remainder();
     let mut tail = [0u8; 128];
     tail[..rest.len()].copy_from_slice(rest);
     tail[rest.len()] = 0x80;
     let tail_len = if rest.len() < 56 { 64 } else { 128 };
     let bit_len = (data.len() as u64).wrapping_mul(8);
     tail[tail_len - 8..tail_len].copy_from_slice(&bit_len.to_le_bytes());
-    for block in tail[..tail_len].chunks_exact(64) {
+    for block in tail[..tail_len].as_chunks::<64>().0 {
         compress(&mut state, block);
     }
 
     let mut out = [0u8; 16];
-    for (bytes, word) in out.chunks_exact_mut(4).zip(state) {
-        bytes.copy_from_slice(&word.to_le_bytes());
+    for (bytes, word) in out.as_chunks_mut::<4>().0.iter_mut().zip(state) {
+        *bytes = word.to_le_bytes();
     }
     out
 }
 
 /// Processes one 64-byte block.
 #[allow(clippy::many_single_char_names, reason = "names follow RFC 1321")]
-fn compress(state: &mut [u32; 4], block: &[u8]) {
+fn compress(state: &mut [u32; 4], block: &[u8; 64]) {
     let mut words = [0u32; 16];
-    for (word, bytes) in words.iter_mut().zip(block.chunks_exact(4)) {
-        *word = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+    for (word, bytes) in words.iter_mut().zip(block.as_chunks::<4>().0) {
+        *word = u32::from_le_bytes(*bytes);
     }
 
     let [mut a, mut b, mut c, mut d] = *state;
