@@ -211,6 +211,19 @@ jobs:
         run: ci/boot-vanilla.sh fresh-world
       - name: Boot vanilla on the existing world
         run: ci/boot-vanilla.sh existing-world
+      - name: Record golden cases from vanilla
+        run: ci/golden-record.sh
+      - name: Golden tests (linux-x86_64)
+        run: cargo test --workspace --locked
+        env:
+          CERIUM_GOLDEN_DIR: ${{ github.workspace }}/.vanilla/golden
+          CERIUM_REQUIRE_GOLDEN: "1"
+      - name: Share golden cases with the cross-platform job (cache only, never an artifact)
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .vanilla/golden
+          key: golden-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
       - name: Report
         if: ${{ !cancelled() }}
         run: ci/boot-summary.sh boot-*.json >> "$GITHUB_STEP_SUMMARY"
@@ -221,3 +234,59 @@ jobs:
           name: boot-reports-vanilla
           path: boot-*.json
           if-no-files-found: ignore
+
+  golden-cross:
+    name: Golden (${{ matrix.name }})
+    # Replays vanilla's golden cases on other platforms: results must be bit-identical
+    # everywhere, including 32-bit ARM.
+    needs: vanilla
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-aarch64, os: ubuntu-24.04-arm, target: "" }
+          - { name: windows-x86_64, os: windows-2025, target: "" }
+          - { name: macos-aarch64, os: macos-15, target: "" }
+          - { name: armv7-qemu, os: ubuntu-24.04, target: armv7-unknown-linux-gnueabihf }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install rustup if missing
+        if: runner.os != 'Windows'
+        run: |
+          if ! command -v rustup > /dev/null; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+              | sh -s -- -y --profile minimal --default-toolchain none
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+      - name: Install pinned toolchain
+        run: rustup toolchain install && rustup show
+      - name: Set up ARMv7 cross linker and QEMU
+        if: matrix.target == 'armv7-unknown-linux-gnueabihf'
+        run: |
+          rustup target add armv7-unknown-linux-gnueabihf
+          sudo apt-get update -q
+          sudo apt-get install -yq gcc-arm-linux-gnueabihf libc6-dev-armhf-cross \
+            qemu-user-static binfmt-support
+          {
+            echo "CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc"
+            echo "CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_RUNNER=qemu-arm-static"
+            echo "QEMU_LD_PREFIX=/usr/arm-linux-gnueabihf"
+            echo "CARGO_BUILD_TARGET=armv7-unknown-linux-gnueabihf"
+          } >> "$GITHUB_ENV"
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          key: golden-${{ matrix.name }}
+      - name: Restore golden cases
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .vanilla/golden
+          key: golden-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
+      - name: Golden tests
+        run: cargo test --workspace --locked
+        env:
+          CERIUM_GOLDEN_DIR: ${{ github.workspace }}/.vanilla/golden
+          CERIUM_REQUIRE_GOLDEN: "1"

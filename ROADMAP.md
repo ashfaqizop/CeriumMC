@@ -44,18 +44,30 @@ GitHub-ready project setup.
 **Done when:** an empty server binary builds on every target, and the vanilla reference server
 boots in CI.
 
-## Phase 2: Core primitives ⬜
+## Phase 2: Core primitives 🟨
 
-- NBT in binary, network and SNBT forms; VarInt/VarLong; identifiers; UUIDs.
-- Math types: block and section positions, vectors, AABBs and direction enums.
-- **Bit-exact RNG:** the legacy LCG, Xoroshiro128++ and positional random factories.
-- Text components and the codec/serialization framework.
+Delivered in three CI-verified steps:
 
-**Done when:** round-trip and golden tests match vanilla byte-for-byte, including RNG sequences.
+- **2.1 Math & RNG** 🟨: all of vanilla's `Mth` (lookup-table trigonometry, rounding, angle
+  wrapping, interpolation, positional seeds) and **every RNG**: the three LCG flavours,
+  Xoroshiro128++, `WorldgenRandom` seeding, positional factories and `RandomSupport`. Also MD5
+  and Java's `String.hashCode`. Golden data is recorded from the real 26.3 server in CI and
+  replayed on x86_64, ARM64, ARMv7, Windows and macOS.
+- **2.2 NBT** ⬜: binary (file and network forms), Modified UTF-8, size and depth limits, and
+  SNBT parsing and printing.
+- **2.3 Wire & core types** ⬜: VarInt/VarLong, strings, identifiers, UUIDs, block, section
+  and chunk positions, directions and vectors.
+
+Text components move to Phase 3: their click and hover events embed items and entities, which
+need registries.
+
+**Done when:** golden tests replay vanilla's own outputs with zero differences on every
+platform.
 
 ## Phase 3: Networking & protocol ⬜
 
 - An async connection pipeline with framing, compression and AES/CFB8 encryption.
+- Text components (JSON and NBT forms) and the codec framework they are serialized with.
 - The handshake, status, login (offline and online Mojang auth) and configuration states.
 - Definitions for every protocol-777 play packet, generated from the vanilla packet reports.
 

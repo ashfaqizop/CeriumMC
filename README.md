@@ -9,7 +9,7 @@
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Minecraft 26.3](https://img.shields.io/badge/Minecraft-26.3%20(protocol%20777)-62b47a.svg)](#target-version)
-[![Status: Phase 1](https://img.shields.io/badge/status-Phase%201%20%E2%80%94%20foundation-orange.svg)](ROADMAP.md)
+[![Status: Phase 2](https://img.shields.io/badge/status-Phase%202%20%E2%80%94%20core%20primitives-orange.svg)](ROADMAP.md)
 [![AI-coded](https://img.shields.io/badge/AI--coded-research%20project-8a2be2.svg)](#ai-disclaimer)
 
 </div>
@@ -81,7 +81,12 @@ CeriumMC is a Cargo workspace pinned to Rust **1.99.1** (`rust-toolchain.toml`, 
 |---|---|
 | `crates/ceriummc` | The server binary. For now it only reports its version. |
 | `crates/cerium-version` | The single source of truth for the targeted vanilla release. |
+| `crates/cerium-math` | Bit-exact port of vanilla's `Mth` and Java's numeric semantics. |
+| `crates/cerium-random` | Bit-exact ports of every vanilla random generator and seeding scheme. |
+| `crates/cerium-util` | MD5 and Java-compatible hashing. |
 | `tools/cerium-probe` | Status-ping client and boot benchmark harness, used against vanilla and CeriumMC alike. |
+| `tools/cerium-golden` | Loads golden cases that CI records from the real vanilla server, for replay in tests. |
+| `parity/golden` | The Java harness that records those golden cases (CI only; its output is never committed). |
 
 ```sh
 cargo build --release

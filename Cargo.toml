@@ -12,7 +12,12 @@ authors = ["StepByte Studios"]
 publish = false
 
 [workspace.dependencies]
+cerium-golden = { path = "tools/cerium-golden" }
+cerium-math = { path = "crates/cerium-math" }
+cerium-random = { path = "crates/cerium-random" }
+cerium-util = { path = "crates/cerium-util" }
 cerium-version = { path = "crates/cerium-version" }
+libm = "0.2"
 
 [workspace.lints.rust]
 unsafe_code = "deny"

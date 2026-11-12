@@ -1,0 +1,21 @@
+[package]
+name = "cerium-random"
+description = "Bit-exact ports of vanilla's random number generators."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+cerium-math.workspace = true
+cerium-util.workspace = true
+libm.workspace = true
+
+[dev-dependencies]
+cerium-golden.workspace = true
+
+[lints]
+workspace = true
