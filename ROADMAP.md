@@ -26,7 +26,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Done (date)
 
 GitHub-ready project setup.
 
-- README with the AI disclaimer, LICENSE (GPL-3.0), Code of Conduct, Security policy,
+- README with the AI disclaimer, LICENSE (GPL-2.0-only since 2026-11-12, originally GPL-3.0), Code of Conduct, Security policy,
   Contributing guide and legal notes.
 - Issue and PR templates, plus brand assets (transparent logos with light and dark variants).
 - Goal documents for Q1–Q5, this roadmap, and GitHub milestones Q1–Q5.

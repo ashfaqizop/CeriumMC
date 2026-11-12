@@ -1,5 +1,5 @@
 /*
- * CeriumMC golden-case recorder. Copyright StepByte Studios, GPL-3.0-only.
+ * CeriumMC golden-case recorder. Copyright StepByte Studios, GPL-2.0-only.
  *
  * CI compiles this against the official vanilla server jar and runs it. It calls vanilla
  * code with many inputs and writes each call and its result, so the Rust tests can replay

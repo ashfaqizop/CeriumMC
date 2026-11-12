@@ -7,7 +7,7 @@
 
 ### A Minecraft: Java Edition server, rewritten from scratch in idiomatic Rust.
 
-[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+[![License: GPL-2.0-only](https://img.shields.io/badge/license-GPL--2.0--only-blue.svg)](LICENSE)
 [![Minecraft 26.3](https://img.shields.io/badge/Minecraft-26.3%20(protocol%20777)-62b47a.svg)](#target-version)
 [![Status: Phase 2](https://img.shields.io/badge/status-Phase%202%20%E2%80%94%20core%20primitives-orange.svg)](ROADMAP.md)
 [![AI-coded](https://img.shields.io/badge/AI--coded-research%20project-8a2be2.svg)](#ai-disclaimer)
@@ -118,7 +118,12 @@ in [SECURITY.md](SECURITY.md).
 
 ## License
 
-CeriumMC is licensed under the **GNU General Public License v3.0**. See [LICENSE](LICENSE).
+CeriumMC is licensed under the **GNU General Public License, version 2 only** (GPL-2.0-only).
+See [LICENSE](LICENSE).
+
+The project moved from GPL-3.0 to GPL-2.0-only on 2026-11-12, so that it can include exact
+ports of the HotSpot (OpenJDK) math routines that vanilla's results depend on. Those routines
+are licensed GPL-2.0-only. See [docs/LEGAL.md](docs/LEGAL.md#licensing).
 
 ---
 

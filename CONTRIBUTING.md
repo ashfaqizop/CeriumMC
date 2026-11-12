@@ -44,4 +44,4 @@ everything you submit: review it, test it, and make sure it contains no copied M
 ## License
 
 By contributing, you agree that your contributions are licensed under the
-[GNU GPL v3.0](LICENSE).
+[GNU GPL v2.0 only](LICENSE).
