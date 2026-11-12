@@ -72,13 +72,15 @@ mod tests {
     const ENV_FILE: &str = include_str!("../../../ci/vanilla.env");
 
     fn env(key: &str) -> &'static str {
-        ENV_FILE
+        let found = ENV_FILE
             .lines()
             .filter(|line| !line.trim_start().starts_with('#'))
             .filter_map(|line| line.split_once('='))
-            .find(|(k, _)| k.trim() == key)
-            .map(|(_, v)| v.trim())
-            .unwrap_or_else(|| panic!("{key} is missing from ci/vanilla.env"))
+            .find(|(k, _)| k.trim() == key);
+        let Some((_, value)) = found else {
+            panic!("{key} is missing from ci/vanilla.env");
+        };
+        value.trim()
     }
 
     #[test]
@@ -89,7 +91,10 @@ mod tests {
         assert_eq!(env("VANILLA_JAVA"), REFERENCE_JAVA_VERSION.to_string());
         assert_eq!(env("VANILLA_SERVER_URL"), VANILLA_SERVER_JAR.url);
         assert_eq!(env("VANILLA_SERVER_SHA1"), VANILLA_SERVER_JAR.sha1);
-        assert_eq!(env("VANILLA_SERVER_SIZE"), VANILLA_SERVER_JAR.size.to_string());
+        assert_eq!(
+            env("VANILLA_SERVER_SIZE"),
+            VANILLA_SERVER_JAR.size.to_string()
+        );
     }
 
     #[test]
@@ -98,6 +103,10 @@ mod tests {
         assert_eq!(sha1.len(), 40);
         assert!(sha1.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f')));
         assert!(VANILLA_SERVER_JAR.url.contains(sha1));
-        assert!(VANILLA_SERVER_JAR.url.starts_with("https://piston-data.mojang.com/"));
+        assert!(
+            VANILLA_SERVER_JAR
+                .url
+                .starts_with("https://piston-data.mojang.com/")
+        );
     }
 }

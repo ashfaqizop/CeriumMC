@@ -44,8 +44,7 @@ pub(crate) fn read_varint(reader: &mut impl Read) -> io::Result<i32> {
 
 /// Appends a string: its UTF-8 byte length as a `VarInt`, then the bytes.
 pub(crate) fn write_string(buf: &mut Vec<u8>, value: &str) -> io::Result<()> {
-    let len = i32::try_from(value.len())
-        .map_err(|_| invalid("string is too long"))?;
+    let len = i32::try_from(value.len()).map_err(|_| invalid("string is too long"))?;
     write_varint(buf, len);
     buf.extend_from_slice(value.as_bytes());
     Ok(())
@@ -53,15 +52,14 @@ pub(crate) fn write_string(buf: &mut Vec<u8>, value: &str) -> io::Result<()> {
 
 /// Reads a string written by [`write_string`], with vanilla's length limit.
 pub(crate) fn read_string(reader: &mut impl Read) -> io::Result<String> {
-    let len = usize::try_from(read_varint(reader)?)
-        .map_err(|_| invalid("negative string length"))?;
+    let len =
+        usize::try_from(read_varint(reader)?).map_err(|_| invalid("negative string length"))?;
     if len > MAX_STRING_CHARS * 3 {
         return Err(invalid("string length exceeds the protocol limit"));
     }
     let mut bytes = vec![0u8; len];
     reader.read_exact(&mut bytes)?;
-    String::from_utf8(bytes)
-        .map_err(|_| invalid("string is not valid UTF-8"))
+    String::from_utf8(bytes).map_err(|_| invalid("string is not valid UTF-8"))
 }
 
 /// Writes one uncompressed packet: `VarInt` frame length, `VarInt` packet id, payload.
@@ -72,8 +70,7 @@ pub(crate) fn write_packet(writer: &mut impl Write, id: i32, payload: &[u8]) -> 
     if body.len() > MAX_FRAME_LEN {
         return Err(invalid("packet is larger than the maximum frame"));
     }
-    let len = i32::try_from(body.len())
-        .map_err(|_| invalid("packet is too large"))?;
+    let len = i32::try_from(body.len()).map_err(|_| invalid("packet is too large"))?;
     let mut frame = Vec::with_capacity(MAX_VARINT_LEN + body.len());
     write_varint(&mut frame, len);
     frame.extend_from_slice(&body);
@@ -83,8 +80,8 @@ pub(crate) fn write_packet(writer: &mut impl Write, id: i32, payload: &[u8]) -> 
 
 /// Reads one uncompressed packet and returns its id and payload.
 pub(crate) fn read_packet(reader: &mut impl Read) -> io::Result<(i32, Vec<u8>)> {
-    let len = usize::try_from(read_varint(reader)?)
-        .map_err(|_| invalid("negative frame length"))?;
+    let len =
+        usize::try_from(read_varint(reader)?).map_err(|_| invalid("negative frame length"))?;
     if len == 0 || len > MAX_FRAME_LEN {
         return Err(invalid("frame length is out of range"));
     }

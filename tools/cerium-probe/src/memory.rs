@@ -37,10 +37,7 @@ pub(crate) fn sample(_pid: u32) -> Option<MemorySample> {
 }
 
 /// Extracts `VmRSS` and `VmHWM` from the contents of `/proc/<pid>/status`.
-#[cfg_attr(
-    not(any(target_os = "linux", target_os = "android")),
-    allow(dead_code)
-)]
+#[cfg_attr(not(any(target_os = "linux", target_os = "android")), allow(dead_code))]
 fn parse_proc_status(status: &str) -> Option<MemorySample> {
     Some(MemorySample {
         rss_kib: kib_field(status, "VmRSS:")?,
@@ -49,10 +46,7 @@ fn parse_proc_status(status: &str) -> Option<MemorySample> {
 }
 
 /// Reads a `Name:   1234 kB` line.
-#[cfg_attr(
-    not(any(target_os = "linux", target_os = "android")),
-    allow(dead_code)
-)]
+#[cfg_attr(not(any(target_os = "linux", target_os = "android")), allow(dead_code))]
 fn kib_field(status: &str, name: &str) -> Option<u64> {
     status.lines().find_map(|line| {
         let value = line.strip_prefix(name)?.trim();
