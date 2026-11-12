@@ -1,0 +1,16 @@
+[package]
+name = "ceriummc"
+description = "CeriumMC: a Minecraft: Java Edition server written in idiomatic Rust."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+cerium-version.workspace = true
+
+[lints]
+workspace = true

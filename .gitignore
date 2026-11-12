@@ -1,3 +1,10 @@
 # Vanilla research cache: Mojang-derived, never commit
 .cache/
 scripts/
+
+# Rust build output
+target/
+
+# CI reference-server workspace and boot reports
+.vanilla/
+boot-*.json

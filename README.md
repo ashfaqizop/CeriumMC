@@ -9,7 +9,7 @@
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Minecraft 26.3](https://img.shields.io/badge/Minecraft-26.3%20(protocol%20777)-62b47a.svg)](#target-version)
-[![Status: Phase 0](https://img.shields.io/badge/status-Phase%200%20%E2%80%94%20setup-orange.svg)](ROADMAP.md)
+[![Status: Phase 1](https://img.shields.io/badge/status-Phase%201%20%E2%80%94%20foundation-orange.svg)](ROADMAP.md)
 [![AI-coded](https://img.shields.io/badge/AI--coded-research%20project-8a2be2.svg)](#ai-disclaimer)
 
 </div>
@@ -75,9 +75,26 @@ CeriumMC stays pinned to 26.3 until Q1 parity is reached, then moves to the late
 
 ## Building
 
-There is nothing to build yet; the Cargo workspace arrives in **Phase 1**. All builds, tests and
-benchmarks run in **GitHub Actions**, and contributors don't need a local toolchain to send
-documentation or design changes.
+CeriumMC is a Cargo workspace pinned to Rust **1.99.1** (`rust-toolchain.toml`, edition 2024):
+
+| Path | What it is |
+|---|---|
+| `crates/ceriummc` | The server binary. For now it only reports its version. |
+| `crates/cerium-version` | The single source of truth for the targeted vanilla release. |
+| `tools/cerium-probe` | Status-ping client and boot benchmark harness, used against vanilla and CeriumMC alike. |
+
+```sh
+cargo build --release
+cargo test --workspace
+```
+
+All builds, tests and benchmarks run in **GitHub Actions**:
+
+- Linux x86_64 and AArch64, Windows and macOS are built and tested natively.
+- ARMv7 (Raspberry Pi) is cross-built and tested under QEMU.
+- Android (AArch64 and ARMv7) is cross-built.
+- In a separate job, the official vanilla 26.3 server boots in CI as the parity reference. Its
+  boot time and memory use are measured by the same probe that will measure CeriumMC.
 
 ## Contributing
 

@@ -1,0 +1,223 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  RUST_BACKTRACE: "1"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  lint:
+    name: Lint (fmt, clippy, docs, lockfile)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install pinned toolchain
+        run: rustup toolchain install && rustup show
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Cargo.lock is up to date
+        run: |
+          if ! cargo metadata --locked --format-version 1 > /dev/null; then
+            cargo generate-lockfile
+            echo "::error::Cargo.lock is out of date. The expected lockfile is:"
+            cat Cargo.lock
+            exit 1
+          fi
+      - name: rustfmt
+        if: ${{ !cancelled() }}
+        run: cargo fmt --all --check
+      - name: clippy
+        if: ${{ !cancelled() }}
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: rustdoc
+        if: ${{ !cancelled() }}
+        run: cargo doc --workspace --no-deps --locked
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+  test:
+    name: Test (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x86_64, os: ubuntu-24.04 }
+          - { name: linux-aarch64, os: ubuntu-24.04-arm }
+          - { name: windows-x86_64, os: windows-2025 }
+          - { name: macos-aarch64, os: macos-15 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install rustup if missing
+        if: runner.os != 'Windows'
+        run: |
+          if ! command -v rustup > /dev/null; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+              | sh -s -- -y --profile minimal --default-toolchain none
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+      - name: Install pinned toolchain
+        run: rustup toolchain install && rustup show
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          key: ${{ matrix.name }}
+      - name: Build
+        run: cargo build --workspace --all-targets --locked
+      - name: Test
+        run: cargo test --workspace --locked
+      - name: Release build
+        run: cargo build --workspace --release --locked
+      - name: Startup baseline
+        if: runner.os == 'Linux'
+        run: |
+          if [ ! -x /usr/bin/time ]; then
+            sudo apt-get update -q && sudo apt-get install -yq time
+          fi
+          for run in 1 2 3 4 5; do
+            /usr/bin/time -f '%e %M' -a -o startup.txt \
+              target/release/ceriummc --version > /dev/null
+          done
+          {
+            echo "### \`ceriummc --version\` startup (${{ matrix.name }})"
+            echo
+            echo "| run | wall time (s) | peak RSS (KiB) |"
+            echo "|---|---|---|"
+            awk '{ printf "| %d | %s | %s |\n", NR, $1, $2 }' startup.txt
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  cross:
+    name: Cross (${{ matrix.target }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: armv7-unknown-linux-gnueabihf, run-tests: true }
+          - { target: aarch64-linux-android, run-tests: false }
+          - { target: armv7-linux-androideabi, run-tests: false }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install pinned toolchain and target
+        run: rustup toolchain install && rustup target add ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          key: ${{ matrix.target }}
+      - name: Set up ARMv7 cross linker and QEMU
+        if: matrix.target == 'armv7-unknown-linux-gnueabihf'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq gcc-arm-linux-gnueabihf libc6-dev-armhf-cross \
+            qemu-user-static binfmt-support
+          {
+            echo "CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc"
+            echo "CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_RUNNER=qemu-arm-static"
+            echo "QEMU_LD_PREFIX=/usr/arm-linux-gnueabihf"
+          } >> "$GITHUB_ENV"
+      - name: Set up Android NDK linker
+        if: contains(matrix.target, 'android')
+        run: |
+          ndk="${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_HOME}"
+          bin="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          case "${{ matrix.target }}" in
+            aarch64-linux-android)
+              var=CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER
+              clang=aarch64-linux-android24-clang ;;
+            armv7-linux-androideabi)
+              var=CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER
+              clang=armv7a-linux-androideabi24-clang ;;
+          esac
+          test -x "$bin/$clang"
+          echo "$var=$bin/$clang" >> "$GITHUB_ENV"
+      - name: Build
+        run: cargo build --workspace --all-targets --locked --target ${{ matrix.target }}
+      - name: Test (under QEMU)
+        if: matrix.run-tests
+        run: cargo test --workspace --locked --target ${{ matrix.target }}
+      - name: Release build
+        run: cargo build --workspace --release --locked --target ${{ matrix.target }}
+
+  deny:
+    name: Dependency policy (cargo-deny)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          rust-version: "1.99.1"
+
+  vanilla:
+    name: Vanilla reference server
+    # Running the official server requires accepting the Minecraft EULA
+    # (https://aka.ms/MinecraftEULA). The maintainer opts in by setting the repository
+    # variable ACCEPT_MINECRAFT_EULA=true; without it this job is skipped.
+    if: vars.ACCEPT_MINECRAFT_EULA == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Load the vanilla pin
+        run: grep -v '^#' ci/vanilla.env >> "$GITHUB_ENV"
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: ${{ env.VANILLA_JAVA }}
+      - name: Restore the vanilla server jar
+        id: jar
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .vanilla/server.jar
+          key: vanilla-server-${{ hashFiles('ci/vanilla.env') }}
+      - name: Download the vanilla server jar from Mojang
+        if: steps.jar.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .vanilla
+          curl -fsSL --retry 3 "$VANILLA_SERVER_URL" -o .vanilla/server.jar
+      - name: Verify the jar (SHA-1 and size)
+        run: |
+          echo "$VANILLA_SERVER_SHA1  .vanilla/server.jar" | sha1sum --check --strict
+          test "$(stat -c %s .vanilla/server.jar)" = "$VANILLA_SERVER_SIZE"
+      - name: Install pinned toolchain
+        run: rustup toolchain install && rustup show
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Build the probe
+        run: cargo build --release --locked -p cerium-probe
+      - name: Prepare the server directory
+        run: |
+          mkdir -p .vanilla/run
+          cp ci/vanilla-server.properties .vanilla/run/server.properties
+          # Accepted by the maintainer through ACCEPT_MINECRAFT_EULA (see the job comment).
+          echo "eula=true" > .vanilla/run/eula.txt
+      - name: Boot vanilla on a fresh world
+        run: ci/boot-vanilla.sh fresh-world
+      - name: Boot vanilla on the existing world
+        run: ci/boot-vanilla.sh existing-world
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: ci/boot-summary.sh boot-*.json >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload boot reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: boot-reports-vanilla
+          path: boot-*.json
+          if-no-files-found: ignore
