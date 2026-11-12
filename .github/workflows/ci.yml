@@ -181,6 +181,10 @@ jobs:
         with:
           distribution: temurin
           java-version: "25.0.1" # the exact JDK Mojang ships for 26.3 (java-runtime-epsilon)
+      - name: Embedded HotSpot tables are up to date
+        run: |
+          java parity/tables/AtanTables.java > /tmp/atan_tables.rs
+          diff -u crates/cerium-math/src/atan_tables.rs /tmp/atan_tables.rs
       - name: Restore the vanilla server jar
         id: jar
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -214,7 +218,7 @@ jobs:
       - name: Record golden cases from vanilla
         run: ci/golden-record.sh
       - name: Golden tests (linux-x86_64)
-        run: cargo test --workspace --locked
+        run: cargo test --workspace --locked --no-fail-fast
         env:
           CERIUM_GOLDEN_DIR: ${{ github.workspace }}/.vanilla/golden
           CERIUM_REQUIRE_GOLDEN: "1"
@@ -286,7 +290,7 @@ jobs:
           enableCrossOsArchive: true
           fail-on-cache-miss: true
       - name: Golden tests
-        run: cargo test --workspace --locked
+        run: cargo test --workspace --locked --no-fail-fast
         env:
           CERIUM_GOLDEN_DIR: ${{ github.workspace }}/.vanilla/golden
           CERIUM_REQUIRE_GOLDEN: "1"
@@ -321,8 +325,10 @@ jobs:
             macOS) cpu="$(sysctl -n machdep.cpu.brand_string)" ;;
             Windows) cpu="$(powershell -NoProfile -Command '(Get-CimInstance Win32_Processor).Name')" ;;
           esac
+          echo "CPU: $cpu"
           javac -d jmath-classes parity/golden/JMathMain.java
           java -cp jmath-classes golden.JMathMain jmath-out | tee fingerprint.txt
+          grep '^jm.pow ' jmath-out/jmath.txt | gzip -9 > jmath-pow.txt.gz
           {
             echo "### HotSpot math fingerprint (${{ matrix.name }})"
             echo
@@ -332,3 +338,9 @@ jobs:
             cat fingerprint.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload pow results (JDK-only data, for cross-CPU comparison)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: jmath-pow-${{ matrix.name }}
+          path: jmath-pow.txt.gz
+          retention-days: 3

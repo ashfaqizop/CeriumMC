@@ -18,4 +18,5 @@ mkdir -p .vanilla/golden-classes .vanilla/golden
 javac --release "${VANILLA_JAVA}" -nowarn -encoding UTF-8 -cp "$classpath" \
   -d .vanilla/golden-classes parity/golden/*.java
 java -Xmx2G -cp ".vanilla/golden-classes:$classpath" golden.GoldenMain .vanilla/golden
+java -Xmx2G -cp .vanilla/golden-classes golden.JMathMain .vanilla/golden
 ls -la .vanilla/golden
