@@ -344,3 +344,36 @@ jobs:
           name: jmath-pow-${{ matrix.name }}
           path: jmath-pow.txt.gz
           retention-days: 3
+
+  rcpps:
+    name: Measure RCPPS (${{ matrix.name }})
+    # Runs RCPPS over all 2^23 inputs used by HotSpot's log/pow stubs and uploads the exact table.
+    # Runner CPUs alternate between Intel and AMD, so several runners are used.
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: x86_64-1, os: ubuntu-24.04 }
+          - { name: x86_64-2, os: ubuntu-24.04 }
+          - { name: x86_64-3, os: ubuntu-22.04 }
+          - { name: x86_64-4, os: ubuntu-22.04 }
+          - { name: x86_64-5, os: windows-2025 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install pinned toolchain
+        run: rustup toolchain install && rustup show
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Measure
+        run: |
+          cargo run --release --locked -p cerium-rcp -- rcp.rs | tee rcp-summary.txt
+          { echo '### RCPPS (${{ matrix.name }})'; echo '```'; cat rcp-summary.txt; echo '```'; } \
+            >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: rcp-${{ matrix.name }}
+          path: |
+            rcp.rs
+            rcp-summary.txt
+          retention-days: 7

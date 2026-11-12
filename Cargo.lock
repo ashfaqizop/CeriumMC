@@ -32,6 +32,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "cerium-rcp"
+version = "0.1.0"
+
+[[package]]
 name = "cerium-util"
 version = "0.1.0"
 

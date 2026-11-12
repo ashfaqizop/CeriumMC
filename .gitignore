@@ -8,3 +8,6 @@ target/
 # CI reference-server workspace and boot reports
 .vanilla/
 boot-*.json
+
+# Session handoff notes (local working notes)
+Handoff.md

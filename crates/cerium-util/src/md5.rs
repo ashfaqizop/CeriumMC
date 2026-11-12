@@ -99,9 +99,11 @@ mod tests {
     use super::*;
 
     fn hex(data: &[u8]) -> String {
+        use std::fmt::Write as _;
+
         let mut out = String::new();
         for byte in digest(data) {
-            out.push_str(&format!("{byte:02x}"));
+            let _ = write!(out, "{byte:02x}");
         }
         out
     }
