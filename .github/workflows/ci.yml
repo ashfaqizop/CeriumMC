@@ -180,7 +180,7 @@ jobs:
       - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
-          java-version: ${{ env.VANILLA_JAVA }}
+          java-version: "25.0.1" # the exact JDK Mojang ships for 26.3 (java-runtime-epsilon)
       - name: Restore the vanilla server jar
         id: jar
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -290,3 +290,45 @@ jobs:
         env:
           CERIUM_GOLDEN_DIR: ${{ github.workspace }}/.vanilla/golden
           CERIUM_REQUIRE_GOLDEN: "1"
+
+  hotspot-math:
+    name: HotSpot math fingerprint (${{ matrix.name }})
+    # Records java.lang.Math on the JDK Mojang ships (25.0.1) and prints a digest per function,
+    # so results can be compared across CPUs (Intel vs AMD vs ARM). JDK-only; no Minecraft code.
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x86_64-1, os: ubuntu-24.04 }
+          - { name: linux-x86_64-2, os: ubuntu-22.04 }
+          - { name: linux-x86_64-3, os: ubuntu-24.04 }
+          - { name: windows-x86_64, os: windows-2025 }
+          - { name: linux-aarch64, os: ubuntu-24.04-arm }
+          - { name: macos-aarch64, os: macos-15 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "25.0.1"
+      - name: Record and fingerprint
+        run: |
+          case "$RUNNER_OS" in
+            Linux) cpu="$(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2- || true)"
+                   [ -n "$cpu" ] || cpu="$(lscpu | grep -m1 'Model name' | cut -d: -f2-)" ;;
+            macOS) cpu="$(sysctl -n machdep.cpu.brand_string)" ;;
+            Windows) cpu="$(powershell -NoProfile -Command '(Get-CimInstance Win32_Processor).Name')" ;;
+          esac
+          javac -d jmath-classes parity/golden/JMathMain.java
+          java -cp jmath-classes golden.JMathMain jmath-out | tee fingerprint.txt
+          {
+            echo "### HotSpot math fingerprint (${{ matrix.name }})"
+            echo
+            echo "CPU: \`$(echo $cpu)\`"
+            echo
+            echo '```'
+            cat fingerprint.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
