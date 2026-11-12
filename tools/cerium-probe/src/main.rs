@@ -244,7 +244,7 @@ mod tests {
         assert_eq!(flags.value("--port", DEFAULT_PORT).unwrap(), DEFAULT_PORT);
         let protocol = flags.value("--protocol", PROTOCOL_VERSION).unwrap();
         assert_eq!(protocol, PROTOCOL_VERSION);
-        assert!(flags.rest.is_empty());
+        assert_eq!(flags.rest, Vec::<String>::new());
     }
 
     #[test]

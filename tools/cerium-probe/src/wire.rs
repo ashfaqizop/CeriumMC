@@ -124,7 +124,7 @@ mod tests {
             assert_eq!(buf, encoded, "encoding {value}");
             let mut cursor = encoded;
             assert_eq!(read_varint(&mut cursor).unwrap(), value, "decoding {value}");
-            assert!(cursor.is_empty(), "decoding {value} left bytes behind");
+            assert_eq!(cursor, b"", "decoding {value} left bytes behind");
         }
     }
 
@@ -151,7 +151,7 @@ mod tests {
         let (id, body) = read_packet(&mut cursor).unwrap();
         assert_eq!(id, 0x2A);
         assert_eq!(read_string(&mut body.as_slice()).unwrap(), "héllo, wörld");
-        assert!(cursor.is_empty());
+        assert_eq!(cursor, b"");
     }
 
     #[test]

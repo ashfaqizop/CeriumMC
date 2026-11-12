@@ -102,7 +102,7 @@ mod tests {
         assert_eq!(cursor[..2], port.to_be_bytes()[..]);
         cursor = &cursor[2..];
         assert_eq!(read_varint(&mut cursor)?, INTENT_STATUS);
-        assert!(cursor.is_empty());
+        assert_eq!(cursor, b"");
 
         let (id, body) = read_packet(&mut stream)?;
         assert_eq!((id, body.len()), (STATUS_REQUEST_ID, 0));
