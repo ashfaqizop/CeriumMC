@@ -22,7 +22,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Done (date)
 
 ---
 
-## Phase 0: Public repository 🟨
+## Phase 0: Public repository ✅ (2026-11-12)
 
 GitHub-ready project setup.
 
