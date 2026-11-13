@@ -29,6 +29,7 @@ fn hotspot_math_matches_the_jdk() {
             "jm.cos" => hotspot::cos(x),
             "jm.log" => vendor.log(x),
             "jm.log10" => vendor.log10(x),
+            "jm.pow" => vendor.pow(x, case.double(1)),
             other => {
                 *not_ported.entry(other).or_default() += 1;
                 continue;

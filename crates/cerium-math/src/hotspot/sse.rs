@@ -217,6 +217,12 @@ impl Xmm {
         self.0[0] = x86(self.0[0], other.0[0], |a, b| a / b);
     }
 
+    /// `sqrtsd xmm, xmm`: the correctly rounded square root of the low lane. A NaN is returned
+    /// quieted, and negative numbers give the x86 default NaN.
+    pub(crate) fn sqrtsd(&mut self) {
+        self.0[0] = x86(self.0[0], 0, |a, _| a.sqrt());
+    }
+
     /// `addpd`.
     pub(crate) fn addpd(&mut self, other: Self) {
         self.0[0] = x86(self.0[0], other.0[0], |a, b| a + b);

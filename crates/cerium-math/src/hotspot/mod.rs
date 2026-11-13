@@ -23,6 +23,8 @@ mod exp;
 mod exp_tables;
 mod log;
 mod log_tables;
+mod pow;
+mod pow_tables;
 mod rcp;
 mod rcp_amd;
 mod rcp_intel;
@@ -83,7 +85,19 @@ pub fn log10(x: f64) -> f64 {
     vendor().log10(x)
 }
 
+/// `Math.pow(x, y)`, exactly as HotSpot computes it on x86_64, for the [`vendor`].
+#[must_use]
+pub fn pow(x: f64, y: f64) -> f64 {
+    vendor().pow(x, y)
+}
+
 impl Vendor {
+    /// `Math.pow(x, y)`, exactly as HotSpot computes it on an x86_64 CPU from this vendor.
+    #[must_use]
+    pub fn pow(self, x: f64, y: f64) -> f64 {
+        pow::pow(x, y, self)
+    }
+
     /// `Math.log(x)`, exactly as HotSpot computes it on an x86_64 CPU from this vendor.
     #[must_use]
     pub fn log(self, x: f64) -> f64 {
@@ -172,6 +186,35 @@ mod tests {
         for x in main.into_iter().chain(reduced) {
             assert!(close(sin(x), libm::sin(x)), "sin {x}");
             assert!(close(cos(x), libm::cos(x)), "cos {x}");
+        }
+    }
+
+    #[test]
+    fn pow_special_values() {
+        for vendor in VENDORS {
+            let pow = |x: f64, y: f64| vendor.pow(x, y);
+            assert_eq!(pow(3.0, 2.0), 9.0);
+            assert_eq!(pow(16.0, 0.5), 4.0);
+            assert_eq!(pow(f64::NAN, 0.0), 1.0);
+            assert_eq!(pow(0.0, -1.0), f64::INFINITY);
+            assert_eq!(pow(-0.0, -1.0), f64::NEG_INFINITY);
+            assert_eq!(pow(-0.0, 3.0).to_bits(), (-0.0f64).to_bits());
+            assert_eq!(pow(2.0, 1e10), f64::INFINITY);
+            assert_eq!(pow(2.0, -1e10), 0.0);
+            assert_eq!(pow(0.5, f64::INFINITY), 0.0);
+            assert_eq!(pow(f64::NEG_INFINITY, 3.0), f64::NEG_INFINITY);
+            assert_eq!(pow(-2.0, 0.5).to_bits(), 0xFFF8_0000_0000_0000);
+        }
+    }
+
+    #[test]
+    fn pow_close_to_the_truth() {
+        let close = |a: f64, b: f64| (a - b).abs() <= a.abs() * 4.0 * f64::EPSILON;
+        let cases = [(10.0, 3.7), (0.3, 2.4), (1.0001, 5000.0), (7.0, -3.3)];
+        for vendor in VENDORS {
+            for (x, y) in cases {
+                assert!(close(vendor.pow(x, y), libm::pow(x, y)), "pow {x} {y}");
+            }
         }
     }
 
