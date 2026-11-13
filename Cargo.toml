@@ -12,6 +12,7 @@ authors = ["StepByte Studios"]
 publish = false
 
 [workspace.dependencies]
+cerium-brigadier = { path = "crates/cerium-brigadier" }
 cerium-golden = { path = "tools/cerium-golden" }
 cerium-java = { path = "crates/cerium-java" }
 cerium-math = { path = "crates/cerium-math" }

@@ -3,6 +3,13 @@
 version = 4
 
 [[package]]
+name = "cerium-brigadier"
+version = "0.1.0"
+dependencies = [
+ "cerium-java",
+]
+
+[[package]]
 name = "cerium-golden"
 version = "0.1.0"
 

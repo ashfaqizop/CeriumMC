@@ -1,0 +1,16 @@
+[package]
+name = "cerium-brigadier"
+description = "Brigadier's StringReader and CommandSyntaxException, with Minecraft's translated error messages."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+cerium-java.workspace = true
+
+[lints]
+workspace = true
