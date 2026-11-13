@@ -126,6 +126,23 @@ public final class JMathMain {
             binary("jm.pow", Math::pow, rnd.nextDouble(0.0, 100.0), rnd.nextInt(-8, 9) * 0.5);
             binary("jm.pow", Math::pow, anyBits(), anyBits());
         }
+        // StrictMath-backed functions that vanilla calls (Java's pure-Java FdLibm port): atan2,
+        // asin, acos and log1p. CeriumMC uses the libm crate for these and must match bit for bit.
+        for (double x : SPECIAL) {
+            unary("jm.asin", Math::asin, x);
+            unary("jm.acos", Math::acos, x);
+            unary("jm.log1p", Math::log1p, x);
+            for (double y : SPECIAL) binary("jm.atan2", Math::atan2, x, y);
+        }
+        for (int i = 0; i < N; i++) {
+            unary("jm.asin", Math::asin, rnd.nextDouble(-1.0, 1.0));
+            unary("jm.acos", Math::acos, rnd.nextDouble(-1.0, 1.0));
+            unary("jm.asin", Math::asin, anyBits());
+            unary("jm.log1p", Math::log1p, rnd.nextDouble(-1.0, 100.0));
+            unary("jm.log1p", Math::log1p, anyBits());
+            binary("jm.atan2", Math::atan2, rnd.nextDouble(-10.0, 10.0), rnd.nextDouble(-10.0, 10.0));
+            binary("jm.atan2", Math::atan2, anyBits(), anyBits());
+        }
         // log, log10, pow: a dense sweep over the mantissa. The stubs' RCPPS step reads the top
         // 23 mantissa bits, and Intel and AMD differ for about 1.6% of them, so each of the 2^19
         // buckets of 16 such values gets one case per function, at a random scale.
