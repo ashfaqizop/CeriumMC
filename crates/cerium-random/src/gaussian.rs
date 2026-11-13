@@ -1,6 +1,10 @@
 //! Vanilla's `MarsagliaPolarGaussian`: normal deviates generated in pairs.
+//!
+//! Vanilla calls `Math.log`, a HotSpot intrinsic whose exact bits depend on the CPU vendor,
+//! so the deviates follow [`cerium_math::hotspot::set_vendor`]. (`Math.sqrt` is correctly
+//! rounded everywhere.)
 
-use cerium_math::mth;
+use cerium_math::{hotspot, mth};
 
 /// The cached second deviate of the Marsaglia polar method.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
@@ -26,7 +30,7 @@ impl Gaussian {
             let y = 2.0 * next_double() - 1.0;
             let radius_squared = mth::square_f64(x) + mth::square_f64(y);
             if radius_squared < 1.0 && radius_squared != 0.0 {
-                let multiplier = (-2.0 * libm::log(radius_squared) / radius_squared).sqrt();
+                let multiplier = (-2.0 * hotspot::log(radius_squared) / radius_squared).sqrt();
                 self.next_next = y * multiplier;
                 self.has_next_next = true;
                 return x * multiplier;

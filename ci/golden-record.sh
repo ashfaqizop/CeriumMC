@@ -19,4 +19,6 @@ javac --release "${VANILLA_JAVA}" -nowarn -encoding UTF-8 -cp "$classpath" \
   -d .vanilla/golden-classes parity/golden/*.java
 java -Xmx2G -cp ".vanilla/golden-classes:$classpath" golden.GoldenMain .vanilla/golden
 java -Xmx2G -cp .vanilla/golden-classes golden.JMathMain .vanilla/golden
+ci/cpu-vendor.sh > .vanilla/golden/cpu-vendor.txt
+echo "CPU vendor: $(cat .vanilla/golden/cpu-vendor.txt)"
 ls -la .vanilla/golden

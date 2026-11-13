@@ -12,7 +12,6 @@ publish.workspace = true
 [dependencies]
 cerium-math.workspace = true
 cerium-util.workspace = true
-libm.workspace = true
 
 [dev-dependencies]
 cerium-golden.workspace = true

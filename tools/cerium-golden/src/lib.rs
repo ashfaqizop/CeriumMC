@@ -253,6 +253,23 @@ pub fn load(file: &str) -> Option<Vec<Case>> {
     Some(cases)
 }
 
+/// The CPUID vendor string (`GenuineIntel`, `AuthenticAMD`, …) of the machine that recorded
+/// the golden data, from `cpu-vendor.txt` (written by `ci/cpu-vendor.sh`). HotSpot's
+/// `Math.log`, `log10` and `pow` results depend on it. Returns `None` when golden data isn't
+/// configured.
+///
+/// # Panics
+///
+/// Panics if golden data is configured but `cpu-vendor.txt` can't be read.
+#[must_use]
+pub fn cpu_vendor() -> Option<String> {
+    let dir = std::env::var_os("CERIUM_GOLDEN_DIR")?;
+    let path = PathBuf::from(dir).join("cpu-vendor.txt");
+    let text = std::fs::read_to_string(&path)
+        .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+    Some(text.trim().to_owned())
+}
+
 /// Collects mismatches between vanilla's results and CeriumMC's, and reports them together.
 #[derive(Debug)]
 pub struct Report {

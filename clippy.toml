@@ -1,1 +1,1 @@
-doc-valid-idents = ["CeriumMC", "StepByte", "VarInt", "VarLong", "KiB", "MiB", "NaN", ".."]
+doc-valid-idents = ["CeriumMC", "StepByte", "VarInt", "VarLong", "KiB", "MiB", "NaN", "HotSpot", "OpenJDK", "x86_64", ".."]

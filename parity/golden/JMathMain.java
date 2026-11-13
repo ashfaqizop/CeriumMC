@@ -126,5 +126,16 @@ public final class JMathMain {
             binary("jm.pow", Math::pow, rnd.nextDouble(0.0, 100.0), rnd.nextInt(-8, 9) * 0.5);
             binary("jm.pow", Math::pow, anyBits(), anyBits());
         }
+        // log, log10, pow: a dense sweep over the mantissa. The stubs' RCPPS step reads the top
+        // 23 mantissa bits, and Intel and AMD differ for about 1.6% of them, so each of the 2^19
+        // buckets of 16 such values gets one case per function, at a random scale.
+        for (long bucket = 0; bucket < (1L << 19); bucket++) {
+            long mantissa = (bucket << 33) | (rnd.nextLong() & ((1L << 33) - 1));
+            double unit = Double.longBitsToDouble(0x3FF0_0000_0000_0000L | mantissa);
+            double x = Math.scalb(unit, rnd.nextInt(-40, 41));
+            unary("jm.log", Math::log, x);
+            unary("jm.log10", Math::log10, x);
+            binary("jm.pow", Math::pow, x, rnd.nextDouble(-4.0, 4.0));
+        }
     }
 }

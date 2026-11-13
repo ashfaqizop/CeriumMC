@@ -299,18 +299,22 @@ jobs:
     name: HotSpot math fingerprint (${{ matrix.name }})
     # Records java.lang.Math on the JDK Mojang ships (25.0.1) and prints a digest per function,
     # so results can be compared across CPUs (Intel vs AMD vs ARM). JDK-only; no Minecraft code.
+    # On x86_64 it then replays the recording against cerium_math::hotspot with this CPU's
+    # vendor, so the Intel and AMD RCPPS tables are both checked on real hardware (the Intel
+    # macOS runner always has an Intel CPU; the others are usually AMD EPYC).
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { name: linux-x86_64-1, os: ubuntu-24.04 }
-          - { name: linux-x86_64-2, os: ubuntu-22.04 }
-          - { name: linux-x86_64-3, os: ubuntu-24.04 }
-          - { name: windows-x86_64, os: windows-2025 }
-          - { name: linux-aarch64, os: ubuntu-24.04-arm }
-          - { name: macos-aarch64, os: macos-15 }
+          - { name: linux-x86_64-1, os: ubuntu-24.04, replay: true }
+          - { name: linux-x86_64-2, os: ubuntu-22.04, replay: true }
+          - { name: linux-x86_64-3, os: ubuntu-24.04, replay: true }
+          - { name: windows-x86_64, os: windows-2025, replay: true }
+          - { name: macos-x86_64-intel, os: macos-15-intel, replay: true }
+          - { name: linux-aarch64, os: ubuntu-24.04-arm, replay: false }
+          - { name: macos-aarch64, os: macos-15, replay: false }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
@@ -328,6 +332,8 @@ jobs:
           echo "CPU: $cpu"
           javac -d jmath-classes parity/golden/JMathMain.java
           java -cp jmath-classes golden.JMathMain jmath-out | tee fingerprint.txt
+          ci/cpu-vendor.sh > jmath-out/cpu-vendor.txt
+          echo "CPU vendor: $(cat jmath-out/cpu-vendor.txt)"
           grep '^jm.pow ' jmath-out/jmath.txt | gzip -9 > jmath-pow.txt.gz
           {
             echo "### HotSpot math fingerprint (${{ matrix.name }})"
@@ -338,6 +344,19 @@ jobs:
             cat fingerprint.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Install pinned toolchain
+        if: matrix.replay
+        run: rustup toolchain install && rustup show
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        if: matrix.replay
+        with:
+          key: hotspot-${{ matrix.name }}
+      - name: Replay against cerium_math::hotspot
+        if: matrix.replay
+        run: cargo test --locked -p cerium-math --test hotspot -- --nocapture
+        env:
+          CERIUM_GOLDEN_DIR: ${{ github.workspace }}/jmath-out
+          CERIUM_REQUIRE_GOLDEN: "1"
       - name: Upload pow results (JDK-only data, for cross-CPU comparison)
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

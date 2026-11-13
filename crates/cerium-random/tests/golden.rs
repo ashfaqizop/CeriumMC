@@ -4,7 +4,8 @@
 //! draws, reseeding, forking, positional factories, world-generation seeding and the `Mth`
 //! helpers. State carries across steps, so any divergence shows up immediately.
 
-use cerium_golden::{Case, Report, Value, load};
+use cerium_golden::{Case, Report, Value, cpu_vendor, load};
+use cerium_math::hotspot::{self, Vendor};
 use cerium_random::{
     ForkableRandom, LegacyPositionalRandomFactory, LegacyRandom, PositionalRandomFactory,
     RandomSource, SingleThreadedRandom, ThreadSafeLegacyRandom, WorldgenRandom,
@@ -305,6 +306,11 @@ fn random_program_matches_vanilla() {
     let Some(cases) = load("random.txt") else {
         return;
     };
+    // `nextGaussian` uses HotSpot's `Math.log`, which depends on the recording CPU's vendor.
+    let name = cpu_vendor().expect("golden data was loaded");
+    let vendor = Vendor::from_cpuid(&name)
+        .unwrap_or_else(|| panic!("golden data was recorded on an unknown CPU vendor {name:?}"));
+    hotspot::set_vendor(vendor);
     let mut state = State::default();
     let mut report = Report::new("random.txt");
     for case in &cases {
