@@ -100,9 +100,10 @@ fn sar(value: u32, shift: u32) -> u32 {
     (value.cast_signed() >> (shift & 31)).cast_unsigned()
 }
 
-/// `bsrl`: the index of the highest set bit (the stub only applies it to non-zero values).
+/// `bsrl`: the index of the highest set bit. The stub only applies it to values of at least
+/// 1, so `ilog2` never sees zero.
 fn bsr(value: u32) -> u32 {
-    31 - value.leading_zeros()
+    value.ilog2()
 }
 
 /// A double with the given high 16 bits and zero low bits (`xorpd`, then `pinsrw …, 3`).
