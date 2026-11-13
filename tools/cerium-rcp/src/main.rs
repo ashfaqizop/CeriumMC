@@ -1,6 +1,6 @@
 //! `cerium-rcp` measures this CPU's `RCPPS` instruction exactly.
 //!
-//! HotSpot's x86_64 `Math.log`, `log10` and `pow` start from `RCPPS`, an approximate
+//! `HotSpot`'s `x86_64` `Math.log`, `log10` and `pow` start from `RCPPS`, an approximate
 //! reciprocal whose exact output differs between CPU vendors. That is why vanilla's
 //! `Math.pow` differs between Intel and AMD servers. Every call site feeds it a float `1.m`,
 //! built from the top 23 mantissa bits of the argument, so this tool evaluates `RCPPS` on all
@@ -19,15 +19,12 @@ fn main() {
         eprintln!("usage: cerium-rcp OUTPUT.rs");
         std::process::exit(2);
     };
-    match x86::measure() {
-        Some(measurement) => {
-            print!("{}", measurement.summary());
-            std::fs::write(&path, measurement.to_rust()).expect("cannot write the table");
-        }
-        None => {
-            eprintln!("RCPPS exists only on x86_64");
-            std::process::exit(1);
-        }
+    if let Some(measurement) = x86::measure() {
+        print!("{}", measurement.summary());
+        std::fs::write(&path, measurement.to_rust()).expect("cannot write the table");
+    } else {
+        eprintln!("RCPPS exists only on x86_64");
+        std::process::exit(1);
     }
 }
 
@@ -120,19 +117,27 @@ mod x86 {
     use super::{INPUTS, Measurement};
 
     /// `RCPPS` on one value.
-    #[allow(unsafe_code, unused_unsafe, reason = "SSE is part of the x86_64 baseline")]
+    #[allow(
+        unsafe_code,
+        unused_unsafe,
+        reason = "SSE is part of the x86_64 baseline"
+    )]
     fn rcp(x: f32) -> f32 {
         // SAFETY: SSE is always available on x86_64, and the intrinsic has no preconditions.
         unsafe { _mm_cvtss_f32(_mm_rcp_ps(_mm_set1_ps(x))) }
     }
 
     /// The CPUID vendor and brand strings.
-    #[allow(unsafe_code, unused_unsafe, reason = "CPUID is always available on x86_64")]
+    #[allow(
+        unsafe_code,
+        unused_unsafe,
+        reason = "CPUID is always available on x86_64"
+    )]
     fn cpu_names() -> (String, String) {
         // SAFETY: CPUID exists on every x86_64 CPU; leaves 0 and 0x8000_0002..=4 are standard.
         let (vendor_regs, brand_regs) = unsafe {
             let leaf0 = __cpuid(0);
-            let brand: Vec<_> = (0x8000_0002..=0x8000_0004).map(|leaf| __cpuid(leaf)).collect();
+            let brand: Vec<_> = (0x8000_0002..=0x8000_0004).map(__cpuid).collect();
             (leaf0, brand)
         };
         let mut vendor = Vec::new();
@@ -154,6 +159,10 @@ mod x86 {
         (text(vendor), text(brand))
     }
 
+    #[allow(
+        clippy::unnecessary_wraps,
+        reason = "the signature is shared with the non-x86 fallback"
+    )]
     pub(super) fn measure() -> Option<Measurement> {
         let (vendor, brand) = cpu_names();
         let outputs = (0..INPUTS).map(|m| rcp(f32::from_bits(0x3F80_0000 | m)).to_bits());

@@ -348,7 +348,8 @@ jobs:
   rcpps:
     name: Measure RCPPS (${{ matrix.name }})
     # Runs RCPPS over all 2^23 inputs used by HotSpot's log/pow stubs and uploads the exact table.
-    # Runner CPUs alternate between Intel and AMD, so several runners are used.
+    # Linux and Windows runner CPUs are usually AMD EPYC; the Intel macOS runner always has an
+    # Intel CPU, so both vendors are measured on every run.
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
@@ -360,6 +361,7 @@ jobs:
           - { name: x86_64-3, os: ubuntu-22.04 }
           - { name: x86_64-4, os: ubuntu-22.04 }
           - { name: x86_64-5, os: windows-2025 }
+          - { name: x86_64-intel-macos, os: macos-15-intel }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install pinned toolchain
