@@ -25,6 +25,8 @@ fn hotspot_math_matches_the_jdk() {
         let x = case.double(0);
         let actual = match case.op.as_str() {
             "jm.exp" => hotspot::exp(x),
+            "jm.sin" => hotspot::sin(x),
+            "jm.cos" => hotspot::cos(x),
             "jm.log" => vendor.log(x),
             "jm.log10" => vendor.log10(x),
             other => {

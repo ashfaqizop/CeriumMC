@@ -240,6 +240,37 @@ impl Xmm {
         Self([source.0[0], source.0[0]])
     }
 
+    /// `cvtsi2sdq xmm, r64`: the low lane becomes the signed integer as a double, rounded to
+    /// nearest even.
+    pub(crate) fn cvtsi2sdq(&mut self, value: i64) {
+        self.0[0] = (value as f64).to_bits();
+    }
+
+    /// `cvttsd2sil r32, xmm`: the low lane truncated to an `i32`. NaN and out-of-range values
+    /// give the x86 "integer indefinite" `i32::MIN` (Rust's `as` would saturate instead).
+    pub(crate) fn cvttsd2sil(self) -> i32 {
+        let value = self.low();
+        // Exactly the values whose truncation fits; NaN compares false.
+        if value > -2_147_483_649.0 && value < 2_147_483_648.0 {
+            value as i32
+        } else {
+            i32::MIN
+        }
+    }
+
+    /// `cvttsd2siq r64, xmm`: the low lane truncated to an `i64`. NaN and out-of-range values
+    /// give the x86 "integer indefinite" `i64::MIN`.
+    pub(crate) fn cvttsd2siq(self) -> i64 {
+        const LIMIT: f64 = 9_223_372_036_854_775_808.0; // 2^63
+        let value = self.low();
+        // Exactly the values whose truncation fits; NaN is not contained.
+        if (-LIMIT..LIMIT).contains(&value) {
+            value as i64
+        } else {
+            i64::MIN
+        }
+    }
+
     /// `cvtsi2sdl xmm, r32`: the low lane becomes the signed integer as a double.
     pub(crate) fn cvtsi2sdl(&mut self, value: i32) {
         self.0[0] = f64::from(value).to_bits();
