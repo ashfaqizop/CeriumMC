@@ -16,6 +16,7 @@ cerium-brigadier = { path = "crates/cerium-brigadier" }
 cerium-golden = { path = "tools/cerium-golden" }
 cerium-java = { path = "crates/cerium-java" }
 cerium-math = { path = "crates/cerium-math" }
+cerium-nbt = { path = "crates/cerium-nbt" }
 cerium-random = { path = "crates/cerium-random" }
 cerium-util = { path = "crates/cerium-util" }
 cerium-version = { path = "crates/cerium-version" }

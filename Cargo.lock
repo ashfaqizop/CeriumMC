@@ -29,6 +29,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "cerium-nbt"
+version = "0.1.0"
+dependencies = [
+ "cerium-java",
+]
+
+[[package]]
 name = "cerium-probe"
 version = "0.1.0"
 dependencies = [
