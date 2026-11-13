@@ -31,7 +31,10 @@ fn joml_math_matches_joml() {
         }
     }
     let failed = failures.len();
-    eprintln!("joml.txt: {} cases checked, {failed} mismatched", cases.len());
+    eprintln!(
+        "joml.txt: {} cases checked, {failed} mismatched",
+        cases.len()
+    );
     assert!(
         failures.is_empty(),
         "{failed} of {} org.joml.Math cases differ:\n{}",

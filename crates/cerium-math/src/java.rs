@@ -474,7 +474,10 @@ mod tests {
         assert_eq!(clamp_f64(0.5, f64::NAN, 1.0), None);
         assert_eq!(clamp_f64(0.5, 0.0, -0.0), None);
         assert_eq!(clamp_f64(0.5, -0.0, 0.0).map(f64::to_bits), Some(0));
-        assert_eq!(clamp_f32(-1.0, -0.0, -0.0).map(f32::to_bits), Some(0x8000_0000));
+        assert_eq!(
+            clamp_f32(-1.0, -0.0, -0.0).map(f32::to_bits),
+            Some(0x8000_0000)
+        );
     }
 
     #[test]

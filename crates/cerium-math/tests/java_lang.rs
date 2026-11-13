@@ -28,7 +28,10 @@ fn java_lang_math_matches_java() {
         }
     }
     let failed = failures.len();
-    eprintln!("jlang.txt: {} cases checked, {failed} mismatched", cases.len());
+    eprintln!(
+        "jlang.txt: {} cases checked, {failed} mismatched",
+        cases.len()
+    );
     assert!(
         failures.is_empty(),
         "{failed} of {} java.lang.Math cases differ:\n{}",
@@ -77,7 +80,10 @@ fn eval(c: &Case) -> Value {
         "jl.next_down_d" => Double(java::next_down_f64(c.double(0))),
         "jl.clamp_li" => illegal(java::clamp_i64_to_i32(c.long(0), c.int(1), c.int(2)), Int),
         "jl.clamp_l" => illegal(java::clamp_i64(c.long(0), c.long(1), c.long(2)), Long),
-        "jl.clamp_d" => illegal(java::clamp_f64(c.double(0), c.double(1), c.double(2)), Double),
+        "jl.clamp_d" => illegal(
+            java::clamp_f64(c.double(0), c.double(1), c.double(2)),
+            Double,
+        ),
         "jl.clamp_f" => illegal(java::clamp_f32(c.float(0), c.float(1), c.float(2)), Float),
         "jl.to_int_exact" => arithmetic(java::to_int_exact(c.long(0)), Int),
         "jl.abs_exact_i" => arithmetic(java::abs_exact_i32(c.int(0)), Int),
@@ -87,9 +93,7 @@ fn eval(c: &Case) -> Value {
         "jl.subtract_exact_i" => arithmetic(java::subtract_exact_i32(c.int(0), c.int(1)), Int),
         "jl.subtract_exact_l" => arithmetic(java::subtract_exact_i64(c.long(0), c.long(1)), Long),
         "jl.floor_div_exact_i" => arithmetic(java::floor_div_exact_i32(c.int(0), c.int(1)), Int),
-        "jl.floor_div_exact_l" => {
-            arithmetic(java::floor_div_exact_i64(c.long(0), c.long(1)), Long)
-        }
+        "jl.floor_div_exact_l" => arithmetic(java::floor_div_exact_i64(c.long(0), c.long(1)), Long),
         "jl.pow_exact_i" => arithmetic(java::pow_exact_i32(c.int(0), c.int(1)), Int),
         "jl.pow_exact_l" => arithmetic(java::pow_exact_i64(c.long(0), c.int(1)), Long),
         other => panic!("line {}: unknown operation {other}", c.line),
