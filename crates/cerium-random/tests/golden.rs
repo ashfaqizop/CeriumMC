@@ -93,6 +93,7 @@ impl Fac {
         }
     }
 
+    #[allow(clippy::wrong_self_convention, reason = "mirrors the factory trait")]
     fn from_hash_of(&self, name: &str) -> Gen {
         match self {
             Self::Legacy(f) => Gen::Legacy(f.from_hash_of(name)),
@@ -100,6 +101,7 @@ impl Fac {
         }
     }
 
+    #[allow(clippy::wrong_self_convention, reason = "mirrors the factory trait")]
     fn from_seed(&self, seed: i64) -> Gen {
         match self {
             Self::Legacy(f) => Gen::Legacy(f.from_seed(seed)),
