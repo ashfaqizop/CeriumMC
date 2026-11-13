@@ -124,12 +124,20 @@ fn long_hash(v: i64) -> i32 {
 
 /// `Float.floatToIntBits`: the bits with every NaN made the canonical NaN.
 fn float_to_int_bits(v: f32) -> i32 {
-    if v.is_nan() { 0x7FC0_0000 } else { v.to_bits() as i32 }
+    if v.is_nan() {
+        0x7FC0_0000
+    } else {
+        v.to_bits() as i32
+    }
 }
 
 /// `Double.doubleToLongBits`.
 fn double_to_long_bits(v: f64) -> i64 {
-    if v.is_nan() { 0x7FF8_0000_0000_0000 } else { v.to_bits() as i64 }
+    if v.is_nan() {
+        0x7FF8_0000_0000_0000
+    } else {
+        v.to_bits() as i64
+    }
 }
 
 impl PartialEq for Tag {
@@ -857,7 +865,10 @@ mod tests {
 
     #[test]
     fn equality_follows_java() {
-        assert_eq!(Tag::Float(f32::NAN), Tag::Float(f32::from_bits(0x7FC0_0001)));
+        assert_eq!(
+            Tag::Float(f32::NAN),
+            Tag::Float(f32::from_bits(0x7FC0_0001))
+        );
         assert_ne!(Tag::Double(0.0), Tag::Double(-0.0));
         assert_ne!(Tag::Int(1), Tag::Long(1));
     }
@@ -875,7 +886,10 @@ mod tests {
     fn hash_codes_follow_java() {
         assert_eq!(Tag::Long(-1).java_hash_code(), 0);
         assert_eq!(Tag::Float(1.0).java_hash_code(), 0x3F80_0000);
-        assert_eq!(Tag::IntArray(vec![1, 2]).java_hash_code(), (31 + 1) * 31 + 2);
+        assert_eq!(
+            Tag::IntArray(vec![1, 2]).java_hash_code(),
+            (31 + 1) * 31 + 2
+        );
         let mut compound = CompoundTag::new();
         compound.put_int("a", 5);
         assert_eq!(compound.java_hash_code(), 97 ^ 5);
@@ -898,7 +912,10 @@ mod tests {
         let mut compound = CompoundTag::new();
         compound.put_string("ab", "xyz");
         assert_eq!(compound.size_in_bytes(), 48 + 28 + 4 + 36 + (36 + 6));
-        assert_eq!(ListTag::from_vec(vec![Tag::Byte(1)]).size_in_bytes(), 36 + 4 + 9);
+        assert_eq!(
+            ListTag::from_vec(vec![Tag::Byte(1)]).size_in_bytes(),
+            36 + 4 + 9
+        );
     }
 
     #[test]
@@ -913,6 +930,9 @@ mod tests {
         other.put("c", Tag::Compound(other_inner));
         target.merge(&other);
         let merged = target.get_compound("c").unwrap();
-        assert_eq!((merged.get_int("a"), merged.get_int("b")), (Some(1), Some(2)));
+        assert_eq!(
+            (merged.get_int("a"), merged.get_int("b")),
+            (Some(1), Some(2))
+        );
     }
 }

@@ -46,7 +46,11 @@ pub fn quote_and_escape_into(input: &JString, out: &mut JStringBuilder) {
             }
         } else {
             if quote == 0 {
-                quote = if c == DOUBLE_QUOTE { SINGLE_QUOTE } else { DOUBLE_QUOTE };
+                quote = if c == DOUBLE_QUOTE {
+                    SINGLE_QUOTE
+                } else {
+                    DOUBLE_QUOTE
+                };
             }
             if quote == c {
                 out.push_unit(BACKSLASH);
@@ -118,7 +122,11 @@ pub fn to_snbt(tag: &Tag) -> JString {
     out.build()
 }
 
-fn push_joined<T>(out: &mut JStringBuilder, items: &[T], mut item: impl FnMut(&mut JStringBuilder, &T)) {
+fn push_joined<T>(
+    out: &mut JStringBuilder,
+    items: &[T],
+    mut item: impl FnMut(&mut JStringBuilder, &T),
+) {
     for (i, value) in items.iter().enumerate() {
         if i != 0 {
             out.push_unit(u16::from(b','));
@@ -303,7 +311,11 @@ impl Pretty<'_> {
         }
         out.push_str("[");
         path.push(JString::from("[]"));
-        let indentation = if no_indentation(&Self::path_string(path)) { "" } else { self.indentation };
+        let indentation = if no_indentation(&Self::path_string(path)) {
+            ""
+        } else {
+            self.indentation
+        };
         if !indentation.is_empty() {
             out.push_str("\n");
         }
@@ -315,7 +327,8 @@ impl Pretty<'_> {
             out.push_str(&indentation.repeat(self.depth + 1));
             out.push_jstring(&child.visit(element, path));
             if i != list.len() - 1 {
-                out.push_str(",").push_str(if indentation.is_empty() { " " } else { "\n" });
+                out.push_str(",")
+                    .push_str(if indentation.is_empty() { " " } else { "\n" });
             }
         }
         if !indentation.is_empty() {
@@ -333,7 +346,11 @@ impl Pretty<'_> {
         out.push_str("{");
         path.push(JString::from("{}"));
         let path_string = Self::path_string(path);
-        let indentation = if no_indentation(&path_string) { "" } else { self.indentation };
+        let indentation = if no_indentation(&path_string) {
+            ""
+        } else {
+            self.indentation
+        };
         if !indentation.is_empty() {
             out.push_str("\n");
         }
@@ -355,7 +372,8 @@ impl Pretty<'_> {
             out.push_str(": ").push_jstring(&child.visit(value, path));
             path.pop();
             if i != keys.len() - 1 {
-                out.push_str(",").push_str(if indentation.is_empty() { " " } else { "\n" });
+                out.push_str(",")
+                    .push_str(if indentation.is_empty() { " " } else { "\n" });
             }
         }
         if !indentation.is_empty() {
@@ -422,7 +440,10 @@ mod tests {
             ("a key", Tag::Float(1.0)),
             ("true", Tag::Double(0.0001)),
             ("Z", Tag::LongArray(vec![1, -2])),
-            ("list", Tag::List(ListTag::from_vec(vec![Tag::Short(3), Tag::End]))),
+            (
+                "list",
+                Tag::List(ListTag::from_vec(vec![Tag::Short(3), Tag::End])),
+            ),
         ]));
         assert_eq!(
             to_snbt(&tag).to_string_lossy(),
@@ -432,11 +453,18 @@ mod tests {
 
     #[test]
     fn pretty_snbt_follows_structure_layout() {
-        let pos = Tag::List(ListTag::from_vec(vec![Tag::Int(1), Tag::Int(2), Tag::Int(3)]));
+        let pos = Tag::List(ListTag::from_vec(vec![
+            Tag::Int(1),
+            Tag::Int(2),
+            Tag::Int(3),
+        ]));
         let block = compound(&[("state", Tag::Int(0)), ("pos", pos.clone())]);
         let tag = Tag::Compound(compound(&[
             ("size", pos),
-            ("data", Tag::List(ListTag::from_vec(vec![Tag::Compound(block)]))),
+            (
+                "data",
+                Tag::List(ListTag::from_vec(vec![Tag::Compound(block)])),
+            ),
             ("DataVersion", Tag::Int(5023)),
             ("zz", Tag::ByteArray(vec![1, 2])),
         ]));

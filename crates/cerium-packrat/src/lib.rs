@@ -246,7 +246,11 @@ impl Dictionary {
     }
 
     /// `namedWithAlias(toParse, toStore)`.
-    pub fn named_with_alias<T: 'static>(&mut self, to_parse: Atom<T>, to_store: Atom<T>) -> TermRef {
+    pub fn named_with_alias<T: 'static>(
+        &mut self,
+        to_parse: Atom<T>,
+        to_store: Atom<T>,
+    ) -> TermRef {
         let rule = self.entry(to_parse);
         Rc::new(terms::Reference {
             rule: Rc::clone(rule.inner()),

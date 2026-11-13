@@ -43,7 +43,10 @@ pub enum EntryResult {
 }
 
 /// `StreamTagVisitor`: receives a tag's contents as they are read.
-#[allow(missing_docs, reason = "each method is the Java method of the same name")]
+#[allow(
+    missing_docs,
+    reason = "each method is the Java method of the same name"
+)]
 pub trait StreamTagVisitor {
     fn visit_end(&mut self) -> ValueResult;
     fn visit_string(&mut self, value: &JString) -> ValueResult;
@@ -560,7 +563,10 @@ impl StreamTagVisitor for SkipAll {
 enum Builder {
     Root(Option<Tag>),
     List(ListTag),
-    Compound { compound: CompoundTag, last_id: JString },
+    Compound {
+        compound: CompoundTag,
+        last_id: JString,
+    },
 }
 
 impl Builder {
@@ -755,7 +761,8 @@ impl FieldTree {
                 .or_insert_with(|| FieldTree::new(depth + 1))
                 .add_entry(field);
         } else {
-            self.selected_fields.insert(field.name.clone(), field.type_id);
+            self.selected_fields
+                .insert(field.name.clone(), field.type_id);
         }
     }
 
@@ -1013,7 +1020,10 @@ mod tests {
     fn chunk() -> Tag {
         let mut level = CompoundTag::new();
         level.put_string("Status", "minecraft:full");
-        level.put("Sections", Tag::List(ListTag::from_vec(vec![Tag::Int(1), Tag::Int(2)])));
+        level.put(
+            "Sections",
+            Tag::List(ListTag::from_vec(vec![Tag::Int(1), Tag::Int(2)])),
+        );
         let mut root = CompoundTag::new();
         root.put_int("DataVersion", 5023);
         root.put("Level", Tag::Compound(level));
@@ -1037,7 +1047,13 @@ mod tests {
         let data = bytes(&tag);
         let mut input = ByteBufInput::new(&data[1..]);
         let mut collector = CollectToTag::new();
-        parse_root(10, &mut input, &mut collector, &mut NbtAccounter::default_quota()).unwrap();
+        parse_root(
+            10,
+            &mut input,
+            &mut collector,
+            &mut NbtAccounter::default_quota(),
+        )
+        .unwrap();
         assert_eq!(collector.result(), Some(tag));
     }
 
@@ -1049,7 +1065,13 @@ mod tests {
             FieldSelector::nested(&["Level"], id::STRING as i8, "Status"),
         ]);
         let mut input = ByteBufInput::new(&data[1..]);
-        parse_root(10, &mut input, &mut visitor, &mut NbtAccounter::default_quota()).unwrap();
+        parse_root(
+            10,
+            &mut input,
+            &mut visitor,
+            &mut NbtAccounter::default_quota(),
+        )
+        .unwrap();
         assert_eq!(visitor.missing_field_count(), 0);
         let Some(Tag::Compound(result)) = visitor.result() else {
             panic!("expected a compound");
@@ -1080,7 +1102,13 @@ mod tests {
     fn skip_all_consumes_everything() {
         let data = bytes(&chunk());
         let mut input = ByteBufInput::new(&data[1..]);
-        parse_root(10, &mut input, &mut SkipAll, &mut NbtAccounter::default_quota()).unwrap();
+        parse_root(
+            10,
+            &mut input,
+            &mut SkipAll,
+            &mut NbtAccounter::default_quota(),
+        )
+        .unwrap();
         assert_eq!(input.position(), data.len() - 1);
     }
 }

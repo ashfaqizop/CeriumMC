@@ -148,10 +148,13 @@ impl Scope {
             self.stack[index].value = value;
         } else {
             self.top_entry += 1;
-            self.set(self.top_entry, Slot {
-                key: Key::Atom(id),
-                value,
-            });
+            self.set(
+                self.top_entry,
+                Slot {
+                    key: Key::Atom(id),
+                    value,
+                },
+            );
         }
     }
 
@@ -166,7 +169,8 @@ impl Scope {
     }
 
     fn get_raw(&self, id: u32) -> Option<&Value> {
-        self.value_index(id).and_then(|i| self.stack[i].value.as_ref())
+        self.value_index(id)
+            .and_then(|i| self.stack[i].value.as_ref())
     }
 
     /// `get(name)`: the value in the current frame, if set.

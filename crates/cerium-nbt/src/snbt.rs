@@ -15,10 +15,10 @@ use std::rc::Rc;
 use cerium_brigadier::{Arg, CommandSyntaxException, Message, StringReader};
 use cerium_java::{JString, JStringBuilder, character, number, uuid};
 use cerium_packrat::terms::{
-    self, GreedyPredicateParseRule, NumberRunParseRule, UnquotedStringParseRule, alternative,
-    cut, fail, marker, optional, positive_lookahead, sequence,
+    self, GreedyPredicateParseRule, NumberRunParseRule, UnquotedStringParseRule, alternative, cut,
+    fail, marker, optional, positive_lookahead, sequence,
 };
-use cerium_packrat::{Atom, Dictionary, Grammar, NamedRule, ParseFailure, ParseState, Scope};
+use cerium_packrat::{Atom, Dictionary, Grammar, ParseFailure, ParseState};
 
 use crate::tag::{CompoundTag, ListTag, Tag};
 
@@ -359,9 +359,7 @@ impl IntegerLiteral {
                 number::parse_unsigned_byte(&digits, radix).map(Number::Byte)
             }
             (false, TypeSuffix::Short) => parse_unsigned_short(&digits, radix).map(Number::Short),
-            (false, TypeSuffix::Int) => {
-                number::parse_unsigned_int(&digits, radix).map(Number::Int)
-            }
+            (false, TypeSuffix::Int) => number::parse_unsigned_int(&digits, radix).map(Number::Int),
             (false, TypeSuffix::Long) => {
                 number::parse_unsigned_long(&digits, radix).map(Number::Long)
             }
@@ -398,8 +396,10 @@ fn parse_unsigned_short(s: &JString, radix: u32) -> Result<i16, number::NumberFo
         Ok(parse as i16)
     } else {
         // Reuse Guava's wording, which is the same: "out of range: <value>".
-        Err(number::parse_unsigned_byte(&JString::from(parse.to_string().as_str()), 10)
-            .expect_err("a value at least 2^16 is out of byte range"))
+        Err(
+            number::parse_unsigned_byte(&JString::from(parse.to_string().as_str()), 10)
+                .expect_err("a value at least 2^16 is out of byte range"),
+        )
     }
 }
 
@@ -679,7 +679,10 @@ pub fn create_parser<O: SnbtOps>(ops: O) -> Grammar<O::Value> {
                         cut(),
                         rules.named(hex_numeral),
                     ]),
-                    sequence(vec![terms::characters('b', 'B'), rules.named(binary_numeral)]),
+                    sequence(vec![
+                        terms::characters('b', 'B'),
+                        rules.named(binary_numeral),
+                    ]),
                     sequence(vec![
                         rules.named(decimal_numeral),
                         cut(),
@@ -692,25 +695,26 @@ pub fn create_parser<O: SnbtOps>(ops: O) -> Grammar<O::Value> {
         ]),
         optional(rules.named(integer_suffix)),
     ]);
-    let integer_literal_rule = rules.put_simple(integer_literal, integer_literal_term, move |scope| {
-        let suffix = scope
-            .get_or_default(integer_suffix, EMPTY_SUFFIX)
-            .expect("a set integer suffix");
-        let sign = scope.get_or_default(sign, Sign::Plus).expect("a set sign");
-        let (base, digits) = if let Some(decimal) = scope.get(decimal_numeral) {
-            (Base::Decimal, decimal)
-        } else if let Some(hex) = scope.get(hex_numeral) {
-            (Base::Hex, hex)
-        } else {
-            (Base::Binary, scope.get_or_throw(binary_numeral))
-        };
-        IntegerLiteral {
-            sign,
-            base,
-            digits,
-            suffix,
-        }
-    });
+    let integer_literal_rule =
+        rules.put_simple(integer_literal, integer_literal_term, move |scope| {
+            let suffix = scope
+                .get_or_default(integer_suffix, EMPTY_SUFFIX)
+                .expect("a set integer suffix");
+            let sign = scope.get_or_default(sign, Sign::Plus).expect("a set sign");
+            let (base, digits) = if let Some(decimal) = scope.get(decimal_numeral) {
+                (Base::Decimal, decimal)
+            } else if let Some(hex) = scope.get(hex_numeral) {
+                (Base::Hex, hex)
+            } else {
+                (Base::Binary, scope.get_or_throw(binary_numeral))
+            };
+            IntegerLiteral {
+                sign,
+                base,
+                digits,
+                suffix,
+            }
+        });
 
     let float_type_suffix: Atom<TypeSuffix> = Atom::of("float_type_suffix");
     let float_type_suffix_term = alternative(vec![
@@ -733,9 +737,11 @@ pub fn create_parser<O: SnbtOps>(ops: O) -> Grammar<O::Value> {
         optional(rules.named(sign)),
         rules.named(decimal_numeral),
     ]);
-    rules.put_simple(float_exponent_part, float_exponent_term, move |scope| Signed {
-        sign: scope.get_or_default(sign, Sign::Plus).expect("a set sign"),
-        value: scope.get_or_throw(decimal_numeral),
+    rules.put_simple(float_exponent_part, float_exponent_term, move |scope| {
+        Signed {
+            sign: scope.get_or_default(sign, Sign::Plus).expect("a set sign"),
+            value: scope.get_or_throw(decimal_numeral),
+        }
     });
 
     let float_whole_part: Atom<JString> = Atom::of("float_whole_part");
@@ -893,9 +899,11 @@ pub fn create_parser<O: SnbtOps>(ops: O) -> Grammar<O::Value> {
             marker(string_contents, JString::from("\"")),
         ]),
     ]);
-    let single_chunk_rule = rules.put_simple(single_quoted_string_chunk, single_chunk_term, move |scope| {
-        scope.get_or_throw(string_contents)
-    });
+    let single_chunk_rule = rules.put_simple(
+        single_quoted_string_chunk,
+        single_chunk_term,
+        move |scope| scope.get_or_throw(string_contents),
+    );
     let single_quoted_string_contents: Atom<JString> = Atom::of("single_quoted_string_contents");
     rules.put_simple(
         single_quoted_string_contents,
@@ -915,9 +923,11 @@ pub fn create_parser<O: SnbtOps>(ops: O) -> Grammar<O::Value> {
             marker(string_contents, JString::from("'")),
         ]),
     ]);
-    let double_chunk_rule = rules.put_simple(double_quoted_string_chunk, double_chunk_term, move |scope| {
-        scope.get_or_throw(string_contents)
-    });
+    let double_chunk_rule = rules.put_simple(
+        double_quoted_string_chunk,
+        double_chunk_term,
+        move |scope| scope.get_or_throw(string_contents),
+    );
     let double_quoted_string_contents: Atom<JString> = Atom::of("double_quoted_string_contents");
     rules.put_simple(
         double_quoted_string_contents,
@@ -946,7 +956,10 @@ pub fn create_parser<O: SnbtOps>(ops: O) -> Grammar<O::Value> {
     let unquoted_string: Atom<JString> = Atom::of("unquoted_string");
     rules.put(
         unquoted_string,
-        Rc::new(UnquotedStringParseRule::new(1, errors::expected_unquoted_string())),
+        Rc::new(UnquotedStringParseRule::new(
+            1,
+            errors::expected_unquoted_string(),
+        )),
     );
 
     let literal: Atom<O::Value> = Atom::of("literal");
@@ -1020,7 +1033,11 @@ pub fn create_parser<O: SnbtOps>(ops: O) -> Grammar<O::Value> {
     let map_entries: Atom<Vec<(JString, O::Value)>> = Atom::of("map_entries");
     rules.put_simple(
         map_entries,
-        terms::repeated_with_trailing_separator(&map_entry_rule, map_entries, terms::character(',')),
+        terms::repeated_with_trailing_separator(
+            &map_entry_rule,
+            map_entries,
+            terms::character(','),
+        ),
         move |scope| terms::list(scope, map_entries).expect("entries"),
     );
 
@@ -1042,15 +1059,28 @@ pub fn create_parser<O: SnbtOps>(ops: O) -> Grammar<O::Value> {
     let list_entries: Atom<Vec<O::Value>> = Atom::of("list_entries");
     rules.put_simple(
         list_entries,
-        terms::repeated_with_trailing_separator(&literal_forward, list_entries, terms::character(',')),
+        terms::repeated_with_trailing_separator(
+            &literal_forward,
+            list_entries,
+            terms::character(','),
+        ),
         move |scope| terms::list(scope, list_entries).expect("entries"),
     );
 
     let array_prefix: Atom<ArrayPrefix> = Atom::of("array_prefix");
     let array_prefix_term = alternative(vec![
-        sequence(vec![terms::character('B'), marker(array_prefix, ArrayPrefix::Byte)]),
-        sequence(vec![terms::character('L'), marker(array_prefix, ArrayPrefix::Long)]),
-        sequence(vec![terms::character('I'), marker(array_prefix, ArrayPrefix::Int)]),
+        sequence(vec![
+            terms::character('B'),
+            marker(array_prefix, ArrayPrefix::Byte),
+        ]),
+        sequence(vec![
+            terms::character('L'),
+            marker(array_prefix, ArrayPrefix::Long),
+        ]),
+        sequence(vec![
+            terms::character('I'),
+            marker(array_prefix, ArrayPrefix::Int),
+        ]),
     ]);
     rules.put_simple(array_prefix, array_prefix_term, move |scope| {
         scope.get_or_throw(array_prefix)
@@ -1179,12 +1209,18 @@ fn run_builtin<O: SnbtOps>(
             return None;
         };
         // `UUIDUtil.uuidToIntArray`.
-        let ints = vec![(msb >> 32) as i32, msb as i32, (lsb >> 32) as i32, lsb as i32];
+        let ints = vec![
+            (msb >> 32) as i32,
+            msb as i32,
+            (lsb >> 32) as i32,
+            lsb as i32,
+        ];
         return Some(ops.create_int_list(ints));
     }
     // `BuiltinKey.toString()`: `<id>/<argument count>`.
     let mut key = JStringBuilder::new();
-    key.push_jstring(id).push_str(&format!("/{}", arguments.len()));
+    key.push_jstring(id)
+        .push_str(&format!("/{}", arguments.len()));
     state.error_here(errors::no_such_operation(key.build()));
     None
 }
@@ -1284,7 +1320,10 @@ mod tests {
         let ParseFailure::Syntax(exception) = &failure else {
             panic!("{s}: no syntax error");
         };
-        (failure_key(&failure).unwrap().0, exception.cursor() as usize)
+        (
+            failure_key(&failure).unwrap().0,
+            exception.cursor() as usize,
+        )
     }
 
     #[test]
@@ -1299,7 +1338,10 @@ mod tests {
         assert_eq!(parse("1e3"), Ok(Tag::Double(1000.0)));
         assert_eq!(parse("2d"), Ok(Tag::Double(2.0)));
         assert_eq!(error("012"), ("snbt.parser.leading_zero_not_allowed", 1));
-        assert_eq!(error("-0x1"), ("snbt.parser.expected_non_negative_number", 4));
+        assert_eq!(
+            error("-0x1"),
+            ("snbt.parser.expected_non_negative_number", 4)
+        );
         assert_eq!(error("1e999"), ("snbt.parser.infinity_not_allowed", 5));
     }
 
@@ -1308,7 +1350,10 @@ mod tests {
         assert_eq!(parse("abc"), Ok(Tag::string("abc")));
         assert_eq!(parse("TRUE"), Ok(Tag::Byte(1)));
         assert_eq!(parse("'it\\'s'"), Ok(Tag::string("it's")));
-        assert_eq!(parse("\"\\u00e9\\N{SNOWMAN}\""), Ok(Tag::string("é\u{2603}")));
+        assert_eq!(
+            parse("\"\\u00e9\\N{SNOWMAN}\""),
+            Ok(Tag::string("é\u{2603}"))
+        );
         assert_eq!(parse("bool(2)"), Ok(Tag::Byte(1)));
         assert_eq!(
             parse("uuid(\"f81d4fae-7dec-11d0-a765-00a0c91e6bf6\")"),

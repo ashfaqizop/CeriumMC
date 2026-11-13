@@ -12,6 +12,11 @@ use crate::{NbtAccounter, NbtError};
 
 /// `TagType.load` for type `type_id` (`TagTypes.getType(type_id)`, invalid ids included).
 ///
+/// Lists and compounds are read with an explicit stack instead of recursion, so the 512
+/// nesting levels vanilla allows never overflow a thread's stack. Errors unwind as Java's do:
+/// each open container pops its depth (the `finally` blocks), and the innermost compound
+/// loading an entry wraps an `IOException` with that entry's name and type.
+///
 /// # Errors
 ///
 /// As vanilla: end of input, malformed strings, quota and depth limits, malformed lists,
@@ -21,7 +26,47 @@ pub fn load(
     input: &mut impl DataInput,
     accounter: &mut NbtAccounter,
 ) -> Result<Tag, NbtError> {
-    Ok(match type_id as u8 {
+    let mut stack = Vec::new();
+    let result = load_with_stack(type_id, input, accounter, &mut stack);
+    result.map_err(|mut error| {
+        for frame in stack.iter().rev() {
+            // `finally { accounter.popDepth(); }`; it cannot fail while frames are open.
+            let _ = accounter.pop_depth();
+            if let Frame::Compound {
+                entry: Some((key, entry_type)),
+                ..
+            } = frame
+            {
+                error = error.report(Some(key), || tag::type_name(i32::from(*entry_type)));
+            }
+        }
+        error
+    })
+}
+
+/// An open list or compound.
+enum Frame {
+    /// A list whose header was read (or is being read) and `remaining` elements are left.
+    List {
+        element_type: i8,
+        remaining: i32,
+        list: ListTag,
+    },
+    /// A compound, with the entry whose value is being loaded (`readNamedTagData`).
+    Compound {
+        compound: CompoundTag,
+        entry: Option<(JString, i8)>,
+    },
+}
+
+/// Starts loading a value: a finished value, or `None` after opening a container frame.
+fn begin(
+    type_id: i8,
+    input: &mut impl DataInput,
+    accounter: &mut NbtAccounter,
+    stack: &mut Vec<Frame>,
+) -> Result<Option<Tag>, NbtError> {
+    Ok(Some(match type_id as u8 {
         id::END => {
             accounter.account_bytes(8)?;
             Tag::End
@@ -57,18 +102,52 @@ pub fn load(
             let bytes = input.read_fully(length as usize)?;
             Tag::ByteArray(bytes.into_iter().map(|b| b as i8).collect())
         }
-        id::STRING => Tag::String(load_string(input, accounter)?),
+        id::STRING => {
+            // Charges 36, reads, then charges 2 per UTF-16 code unit.
+            accounter.account_bytes(36)?;
+            let data = input.read_utf()?;
+            accounter.account_bytes_n(2, data.len() as i64)?;
+            Tag::String(data)
+        }
         id::LIST => {
             accounter.push_depth()?;
-            let list = load_list(input, accounter);
-            let popped = accounter.pop_depth();
-            Tag::List(finish(list, popped)?)
+            stack.push(Frame::List {
+                element_type: 0,
+                remaining: 0,
+                list: ListTag::new(),
+            });
+            // `loadList`'s header.
+            accounter.account_bytes(36)?;
+            let element_type = input.read_byte()?;
+            let count = input.read_int()?;
+            if count < 0 {
+                return Err(NbtError::Format(format!(
+                    "ListTag length cannot be negative: {count}"
+                )));
+            }
+            if element_type == 0 && count > 0 {
+                return Err(NbtError::Format("Missing type on ListTag".to_owned()));
+            }
+            accounter.account_bytes_n(4, i64::from(count))?;
+            if let Some(Frame::List {
+                element_type: frame_type,
+                remaining,
+                ..
+            }) = stack.last_mut()
+            {
+                *frame_type = element_type;
+                *remaining = count;
+            }
+            return Ok(None);
         }
         id::COMPOUND => {
             accounter.push_depth()?;
-            let compound = load_compound(input, accounter);
-            let popped = accounter.pop_depth();
-            Tag::Compound(finish(compound, popped)?)
+            stack.push(Frame::Compound {
+                compound: CompoundTag::new(),
+                entry: None,
+            });
+            accounter.account_bytes(48)?;
+            return Ok(None);
         }
         id::INT_ARRAY => {
             accounter.account_bytes(24)?;
@@ -91,74 +170,66 @@ pub fn load(
             Tag::LongArray(data)
         }
         _ => return Err(NbtError::InvalidTagId(i32::from(type_id))),
-    })
+    }))
 }
 
-/// The result of a `try { ... } finally { popDepth(); }` block: the body's exception wins
-/// over the pop's, as in Java.
-fn finish<T>(body: Result<T, NbtError>, popped: Result<(), NbtError>) -> Result<T, NbtError> {
-    let value = body?;
-    popped?;
-    Ok(value)
-}
-
-/// `StringTag.TYPE.load`: charges 36, reads, then charges 2 per UTF-16 code unit.
-fn load_string(
+/// The loading loop: starts the root value, then alternates between advancing the innermost
+/// container (starting its next value) and delivering finished values to it.
+fn load_with_stack(
+    type_id: i8,
     input: &mut impl DataInput,
     accounter: &mut NbtAccounter,
-) -> Result<JString, NbtError> {
-    accounter.account_bytes(36)?;
-    let data = input.read_utf()?;
-    accounter.account_bytes_n(2, data.len() as i64)?;
-    Ok(data)
-}
-
-/// `ListTag.readListCount`.
-fn read_list_count(input: &mut impl DataInput) -> Result<i32, NbtError> {
-    let count = input.read_int()?;
-    if count < 0 {
-        return Err(NbtError::Format(format!(
-            "ListTag length cannot be negative: {count}"
-        )));
-    }
-    Ok(count)
-}
-
-/// `ListTag.TYPE.loadList`.
-fn load_list(input: &mut impl DataInput, accounter: &mut NbtAccounter) -> Result<ListTag, NbtError> {
-    accounter.account_bytes(36)?;
-    let type_id = input.read_byte()?;
-    let count = read_list_count(input)?;
-    if type_id == 0 && count > 0 {
-        return Err(NbtError::Format("Missing type on ListTag".to_owned()));
-    }
-    accounter.account_bytes_n(4, i64::from(count))?;
-    let mut list = ListTag::new();
-    for _ in 0..count {
-        list.add_and_unwrap(load(type_id, input, accounter)?);
-    }
-    Ok(list)
-}
-
-/// `CompoundTag.TYPE.loadCompound`.
-fn load_compound(
-    input: &mut impl DataInput,
-    accounter: &mut NbtAccounter,
-) -> Result<CompoundTag, NbtError> {
-    accounter.account_bytes(48)?;
-    let mut compound = CompoundTag::new();
+    stack: &mut Vec<Frame>,
+) -> Result<Tag, NbtError> {
+    let mut finished = begin(type_id, input, accounter, stack)?;
     loop {
-        let type_id = input.read_byte()?;
-        if type_id == 0 {
-            return Ok(compound);
+        if let Some(tag) = finished.take() {
+            match stack.last_mut() {
+                None => return Ok(tag),
+                Some(Frame::List { list, remaining, .. }) => {
+                    list.add_and_unwrap(tag);
+                    *remaining -= 1;
+                }
+                Some(Frame::Compound { compound, entry }) => {
+                    let (key, _) = entry.take().expect("an entry being loaded");
+                    if compound.put(key, tag).is_none() {
+                        accounter.account_bytes(36)?;
+                    }
+                }
+            }
         }
-        let key = read_key(input, accounter)?;
-        // `readNamedTagData`: an IOException becomes a ReportedNbtException naming the entry.
-        let tag = load(type_id, input, accounter).map_err(|error| {
-            error.report(Some(&key), || tag::type_name(i32::from(type_id)))
-        })?;
-        if compound.put(key, tag).is_none() {
-            accounter.account_bytes(36)?;
+        // Advance the innermost container.
+        let next = match stack.last() {
+            Some(Frame::List {
+                element_type,
+                remaining,
+                ..
+            }) => (*remaining > 0).then_some(*element_type),
+            Some(Frame::Compound { .. }) => {
+                let type_id = input.read_byte()?;
+                if type_id == 0 {
+                    None
+                } else {
+                    let key = read_key(input, accounter)?;
+                    if let Some(Frame::Compound { entry, .. }) = stack.last_mut() {
+                        *entry = Some((key, type_id));
+                    }
+                    Some(type_id)
+                }
+            }
+            None => unreachable!("the root value is finished first"),
+        };
+        match next {
+            Some(type_id) => finished = begin(type_id, input, accounter, stack)?,
+            None => {
+                // The container is complete: `finally { accounter.popDepth(); }`.
+                let frame = stack.pop().expect("an open container");
+                accounter.pop_depth()?;
+                finished = Some(match frame {
+                    Frame::List { list, .. } => Tag::List(list),
+                    Frame::Compound { compound, .. } => Tag::Compound(compound),
+                });
+            }
         }
     }
 }
@@ -224,7 +295,11 @@ fn length(len: usize) -> i32 {
 
 /// `CompoundTag.writeNamedTag`: the type id, then (except for an end tag) the name and the
 /// payload. An end tag value thus ends the compound early when read back, as in vanilla.
-fn write_named_tag(name: &JString, tag: &Tag, output: &mut impl DataOutput) -> Result<(), NbtError> {
+fn write_named_tag(
+    name: &JString,
+    tag: &Tag,
+    output: &mut impl DataOutput,
+) -> Result<(), NbtError> {
     output.write_byte(tag.id() as i8)?;
     if tag.id() != id::END {
         output.write_utf(name)?;
@@ -247,7 +322,10 @@ fn read_tag_safe(
 /// # Errors
 ///
 /// As [`load`]; `IOException`s from the payload come wrapped in [`NbtError::Reported`].
-pub fn read_any_tag(input: &mut impl DataInput, accounter: &mut NbtAccounter) -> Result<Tag, NbtError> {
+pub fn read_any_tag(
+    input: &mut impl DataInput,
+    accounter: &mut NbtAccounter,
+) -> Result<Tag, NbtError> {
     let type_id = input.read_byte()?;
     if type_id == 0 {
         return Ok(Tag::End);
@@ -288,7 +366,10 @@ pub fn skip_string(input: &mut impl DataInput) -> Result<(), NbtError> {
 /// # Errors
 ///
 /// As [`read_unnamed_tag`], and `IOException("Root tag must be a named compound tag")`.
-pub fn read(input: &mut impl DataInput, accounter: &mut NbtAccounter) -> Result<CompoundTag, NbtError> {
+pub fn read(
+    input: &mut impl DataInput,
+    accounter: &mut NbtAccounter,
+) -> Result<CompoundTag, NbtError> {
     match read_unnamed_tag(input, accounter)? {
         Tag::Compound(compound) => Ok(compound),
         _ => Err(NbtError::RootNotCompound),
@@ -357,7 +438,10 @@ mod tests {
         write_root(&compound, &mut output).unwrap();
         let bytes = output.into_inner();
         assert_eq!(&bytes[..3], [id::COMPOUND, 0, 0]);
-        let read_back = read(&mut StreamInput::new(&bytes[..]), &mut NbtAccounter::unlimited_heap());
+        let read_back = read(
+            &mut StreamInput::new(&bytes[..]),
+            &mut NbtAccounter::unlimited_heap(),
+        );
         assert_eq!(read_back, Ok(compound));
     }
 
@@ -387,9 +471,17 @@ mod tests {
     fn errors_are_wrapped_like_vanilla() {
         // A compound whose int entry "a" is cut off.
         let bytes = [10, 3, 0, 1, b'a', 0, 0];
-        let error = read_any_tag(&mut ByteBufInput::new(&bytes), &mut NbtAccounter::default_quota())
-            .unwrap_err();
-        let NbtError::Reported { cause, tag_name, tag_type } = error else {
+        let error = read_any_tag(
+            &mut ByteBufInput::new(&bytes),
+            &mut NbtAccounter::default_quota(),
+        )
+        .unwrap_err();
+        let NbtError::Reported {
+            cause,
+            tag_name,
+            tag_type,
+        } = error
+        else {
             panic!("expected a ReportedNbtException, got {error:?}");
         };
         assert_eq!(cause.java_class(), "EOFException");
@@ -397,13 +489,22 @@ mod tests {
         assert_eq!(tag_type, "INT");
         // A negative list length is an NbtFormatException, never wrapped.
         let list = [9, 1, 0xFF, 0xFF, 0xFF, 0xFF];
-        let error = read_any_tag(&mut ByteBufInput::new(&list), &mut NbtAccounter::default_quota())
-            .unwrap_err();
-        assert_eq!(error.message().as_deref(), Some("ListTag length cannot be negative: -1"));
+        let error = read_any_tag(
+            &mut ByteBufInput::new(&list),
+            &mut NbtAccounter::default_quota(),
+        )
+        .unwrap_err();
+        assert_eq!(
+            error.message().as_deref(),
+            Some("ListTag length cannot be negative: -1")
+        );
         // A negative byte array length fails the accounter's sign check.
         let array = [7, 0xFF, 0xFF, 0xFF, 0xFE];
-        let error = read_any_tag(&mut ByteBufInput::new(&array), &mut NbtAccounter::default_quota())
-            .unwrap_err();
+        let error = read_any_tag(
+            &mut ByteBufInput::new(&array),
+            &mut NbtAccounter::default_quota(),
+        )
+        .unwrap_err();
         assert_eq!(error.java_class(), "IllegalArgumentException");
     }
 
@@ -413,8 +514,11 @@ mod tests {
         for _ in 0..600 {
             bytes.extend([9, 0, 0, 0, 1]);
         }
-        let error = read_any_tag(&mut ByteBufInput::new(&bytes), &mut NbtAccounter::default_quota())
-            .unwrap_err();
+        let error = read_any_tag(
+            &mut ByteBufInput::new(&bytes),
+            &mut NbtAccounter::default_quota(),
+        )
+        .unwrap_err();
         assert_eq!(
             error.message().as_deref(),
             Some("Tried to read NBT tag with too high complexity, depth > 512")

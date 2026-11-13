@@ -97,7 +97,11 @@ impl NbtError {
 
     /// Wraps an `IOException` the way `readTagSafe`/`readNamedTagData` do; other exceptions
     /// pass through unchanged.
-    pub(crate) fn report(self, tag_name: Option<&JString>, tag_type: impl FnOnce() -> String) -> Self {
+    pub(crate) fn report(
+        self,
+        tag_name: Option<&JString>,
+        tag_type: impl FnOnce() -> String,
+    ) -> Self {
         if self.is_io_exception() {
             Self::Reported {
                 cause: Box::new(self),

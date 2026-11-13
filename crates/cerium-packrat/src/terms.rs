@@ -36,7 +36,9 @@ struct Marker {
 
 impl Term for Marker {
     fn parse(&self, state: &mut ParseState<'_>, _silent: bool, _control: Control<'_>) -> bool {
-        state.scope_mut().put_raw(self.name, Some(Rc::clone(&self.value)));
+        state
+            .scope_mut()
+            .put_raw(self.name, Some(Rc::clone(&self.value)));
         true
     }
 }
@@ -221,7 +223,9 @@ impl Term for Repeated {
                     state.restore(mark);
                     return false;
                 }
-                state.scope_mut().put_raw(self.list, Some(Rc::new(ValueList(elements))));
+                state
+                    .scope_mut()
+                    .put_raw(self.list, Some(Rc::new(ValueList(elements))));
                 return true;
             };
             elements.push(parsed);
@@ -240,7 +244,9 @@ pub struct ValueList(Vec<Value>);
 #[must_use]
 pub fn list<T: Clone + 'static>(scope: &crate::Scope, name: Atom<Vec<T>>) -> Option<Vec<T>> {
     let value = scope.get_value(name.id())?;
-    let list = value.downcast_ref::<ValueList>().expect("a repetition's list");
+    let list = value
+        .downcast_ref::<ValueList>()
+        .expect("a repetition's list");
     Some(
         list.0
             .iter()
@@ -251,7 +257,11 @@ pub fn list<T: Clone + 'static>(scope: &crate::Scope, name: Atom<Vec<T>>) -> Opt
 
 /// `Term.repeated(element, listName, minRepetitions)`.
 #[must_use]
-pub fn repeated<T: 'static>(element: &NamedRule<T>, list_name: Atom<Vec<T>>, min: usize) -> TermRef {
+pub fn repeated<T: 'static>(
+    element: &NamedRule<T>,
+    list_name: Atom<Vec<T>>,
+    min: usize,
+) -> TermRef {
     Rc::new(Repeated {
         element: Rc::clone(element.inner()),
         list: list_name.id(),
@@ -295,7 +305,9 @@ impl Term for RepeatedWithSeparator {
             state.restore(list_mark);
             return false;
         }
-        state.scope_mut().put_raw(self.list, Some(Rc::new(ValueList(elements))));
+        state
+            .scope_mut()
+            .put_raw(self.list, Some(Rc::new(ValueList(elements))));
         true
     }
 }

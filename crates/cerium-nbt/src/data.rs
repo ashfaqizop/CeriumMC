@@ -389,7 +389,11 @@ impl<W: Write> DataOutput for StreamOutput<W> {
 
     /// `writeLong(Double.doubleToLongBits(v))`: every NaN becomes the canonical NaN.
     fn write_double(&mut self, v: f64) -> Result<(), NbtError> {
-        let bits = if v.is_nan() { 0x7FF8_0000_0000_0000 } else { v.to_bits() };
+        let bits = if v.is_nan() {
+            0x7FF8_0000_0000_0000
+        } else {
+            v.to_bits()
+        };
         self.write_bytes(&bits.to_be_bytes())
     }
 }
@@ -489,7 +493,10 @@ mod tests {
         assert_eq!(stream.skip_bytes(10), Ok(4));
         let mut netty = ByteBufInput::new(&[0; 4]);
         assert_eq!(netty.skip_bytes(10), Ok(4));
-        assert_eq!(netty.skip_bytes(-1).unwrap_err().java_class(), "IllegalArgumentException");
+        assert_eq!(
+            netty.skip_bytes(-1).unwrap_err().java_class(),
+            "IllegalArgumentException"
+        );
     }
 
     #[test]
@@ -507,7 +514,10 @@ mod tests {
     fn the_fallback_writes_an_empty_string() {
         let long = JString::from("\u{800}".repeat(30_000).as_str());
         let mut plain = StreamOutput::new(Vec::new());
-        assert_eq!(plain.write_utf(&long).unwrap_err().java_class(), "UTFDataFormatException");
+        assert_eq!(
+            plain.write_utf(&long).unwrap_err().java_class(),
+            "UTFDataFormatException"
+        );
         let mut fallback = StringFallbackOutput::new(StreamOutput::new(Vec::new()));
         fallback.write_utf(&long).unwrap();
         assert_eq!(fallback.into_inner().into_inner(), [0, 0]);
