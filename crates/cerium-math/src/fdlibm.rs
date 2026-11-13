@@ -171,7 +171,7 @@ pub fn acos(x: f64) -> f64 {
         PIO2_HI - (x - (PIO2_LO - x * r))
     } else if hx < 0 {
         // x < -0.5
-        #[allow(clippy::manual_midpoint, reason = "Java computes exactly (1.0 + x) * 0.5")]
+        #[allow(clippy::manual_midpoint, reason = "Java computes (1.0 + x) * 0.5")]
         let z = (1.0 + x) * 0.5;
         let (p, q) = pq(z);
         let s = z.sqrt();
