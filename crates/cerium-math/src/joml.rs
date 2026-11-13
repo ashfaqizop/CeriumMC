@@ -124,8 +124,14 @@ mod tests {
         assert_eq!(invsqrt(-1.0).to_bits(), 0xFFC0_0000);
         assert_eq!(sqrt(f32::from_bits(0x7F80_0001)).to_bits(), 0x7FC0_0001);
         assert_eq!(sin(f32::INFINITY).to_bits(), 0xFFC0_0000);
-        assert_eq!(widen(f32::from_bits(0xFFC0_0001)).to_bits(), 0xFFF8_0000_2000_0000);
-        assert_eq!(narrow(f64::from_bits(0x7FF0_0000_2000_0000)).to_bits(), 0x7FC0_0001);
+        assert_eq!(
+            widen(f32::from_bits(0xFFC0_0001)).to_bits(),
+            0xFFF8_0000_2000_0000
+        );
+        assert_eq!(
+            narrow(f64::from_bits(0x7FF0_0000_2000_0000)).to_bits(),
+            0x7FC0_0001
+        );
     }
 
     #[test]
