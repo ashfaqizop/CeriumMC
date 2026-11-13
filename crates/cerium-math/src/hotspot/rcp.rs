@@ -95,7 +95,10 @@ mod tests {
             let runs = vendor.runs();
             assert_eq!(runs[0].0, 0, "{vendor:?}");
             assert!(runs.is_sorted_by(|a, b| a.0 < b.0), "{vendor:?}");
-            assert!(runs.iter().all(|&(start, _)| start <= MANTISSA), "{vendor:?}");
+            assert!(
+                runs.iter().all(|&(start, _)| start <= MANTISSA),
+                "{vendor:?}"
+            );
         }
     }
 

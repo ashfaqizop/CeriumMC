@@ -30,7 +30,10 @@ use super::rcp::Vendor;
 use super::sse::Xmm;
 
 /// `Math.log(x)` exactly as HotSpot computes it on x86_64, with `RCPPS` from `vendor`.
-#[allow(clippy::too_many_lines, reason = "a transcription of one assembly routine")]
+#[allow(
+    clippy::too_many_lines,
+    reason = "a transcription of one assembly routine"
+)]
 pub(crate) fn log(x: f64, vendor: Vendor) -> f64 {
     let stack0 = x;
     let mut xmm0 = Xmm::from_f64(x);
@@ -108,14 +111,14 @@ pub(crate) fn log(x: f64, vendor: Vendor) -> f64 {
     xmm0.pand(xmm6);
     xmm1.subsd(xmm5);
     xmm5.mulpd(xmm0);
-    eax &= 32_752;
+    eax &= 0x7FF0;
     eax = eax.wrapping_sub(ecx);
     xmm7.cvtsi2sdl(eax.cast_signed());
     xmm1.mulsd(xmm0);
     xmm6 = Xmm::load_low(&LOG2, 0);
     xmm3 = Xmm::load(&COEFF, 0);
     xmm5.subsd(xmm2);
-    edx &= 16_711_680;
+    edx &= 0x00FF_0000;
     edx >>= 12;
     xmm0 = Xmm::load(&L_TBL, (edx / 4) as usize);
     xmm4 = Xmm::load(&COEFF, 4);
@@ -149,7 +152,10 @@ pub(crate) fn log(x: f64, vendor: Vendor) -> f64 {
 }
 
 /// `Math.log10(x)` exactly as HotSpot computes it on x86_64, with `RCPPS` from `vendor`.
-#[allow(clippy::too_many_lines, reason = "a transcription of one assembly routine")]
+#[allow(
+    clippy::too_many_lines,
+    reason = "a transcription of one assembly routine"
+)]
 pub(crate) fn log10(x: f64, vendor: Vendor) -> f64 {
     let stack0 = x;
     let mut xmm0 = Xmm::from_f64(x);
@@ -232,7 +238,7 @@ pub(crate) fn log10(x: f64, vendor: Vendor) -> f64 {
     let mut edx = xmm0.low_u32();
     xmm0.psllq(29);
     xmm0.pand(xmm6);
-    eax &= 32_752;
+    eax &= 0x7FF0;
     eax = eax.wrapping_sub(ecx);
     xmm7.cvtsi2sdl(eax.cast_signed());
     xmm5.mulpd(xmm0);
@@ -240,7 +246,7 @@ pub(crate) fn log10(x: f64, vendor: Vendor) -> f64 {
     xmm6 = Xmm::load_low(&LOG2_LOG10, 0);
     xmm3 = Xmm::load(&COEFF_LOG10, 0);
     xmm5.subsd(xmm2);
-    edx &= 16_711_680;
+    edx &= 0x00FF_0000;
     edx >>= 12;
     xmm0 = Xmm::load(&L_TBL_LOG10, ((edx - 1504) / 4) as usize);
     xmm4 = Xmm::load(&COEFF_LOG10, 4);
