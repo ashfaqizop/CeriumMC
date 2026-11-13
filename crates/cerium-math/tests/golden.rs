@@ -19,7 +19,11 @@ fn index(case: &Case) -> usize {
     usize::try_from(case.int(0)).expect("table index is non-negative")
 }
 
-#[allow(clippy::too_many_lines, reason = "one arm per vanilla function")]
+#[allow(
+    clippy::too_many_lines,
+    clippy::many_single_char_names,
+    reason = "one arm per vanilla function, with one-letter argument accessors"
+)]
 fn eval(c: &Case) -> Vec<Value> {
     use Value::{Bool, Byte, Double, Float, Int, Long};
 

@@ -17,10 +17,7 @@
 //! The transcribed stubs are Copyright Intel Corporation and others, GPL-2.0-only; each module
 //! keeps the original notice.
 
-#[allow(
-    dead_code,
-    reason = "shared by stubs that are not ported yet"
-)]
+#[allow(dead_code, reason = "shared by stubs that are not ported yet")]
 mod constants;
 mod exp;
 mod exp_tables;

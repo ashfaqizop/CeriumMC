@@ -162,9 +162,17 @@ pub trait PositionalRandomFactory {
     fn at(&self, x: i32, y: i32, z: i32) -> Self::Random;
 
     /// A generator for a name, such as an identifier like `minecraft:ore_gold`.
+    #[allow(
+        clippy::wrong_self_convention,
+        reason = "named after vanilla's PositionalRandomFactory.fromHashOf"
+    )]
     fn from_hash_of(&self, name: &str) -> Self::Random;
 
     /// A generator for an explicit seed.
+    #[allow(
+        clippy::wrong_self_convention,
+        reason = "named after vanilla's PositionalRandomFactory.fromSeed"
+    )]
     fn from_seed(&self, seed: i64) -> Self::Random;
 
     /// The text vanilla's `parityConfigString` appends; used to compare configurations.
