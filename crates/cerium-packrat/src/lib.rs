@@ -368,6 +368,6 @@ impl<T: Clone + 'static> Grammar<T> {
                 values.extend(list.iter().cloned());
             }
         }
-        (cursor as usize, values)
+        (usize::try_from(cursor).unwrap_or(start), values)
     }
 }

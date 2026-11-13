@@ -7,7 +7,7 @@
 //! - [`NbtAccounter`] limits the memory and nesting a read may use.
 //! - [`visitor`] streams tags through `StreamTagVisitor`s, as vanilla does to read only some
 //!   fields of a chunk.
-//! - [`print`] turns tags into SNBT (`toString()` and the indented structure-file form).
+//! - [`print`](mod@print) turns tags into SNBT (`toString()` and the indented structure-file form).
 //! - [`snbt`] parses SNBT with vanilla's grammar (`TagParser`), reporting vanilla's errors.
 //!
 //! Errors are [`NbtError`]s, one variant per Java exception class, with Java's messages.

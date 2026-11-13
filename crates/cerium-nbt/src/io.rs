@@ -186,7 +186,9 @@ fn load_with_stack(
         if let Some(tag) = finished.take() {
             match stack.last_mut() {
                 None => return Ok(tag),
-                Some(Frame::List { list, remaining, .. }) => {
+                Some(Frame::List {
+                    list, remaining, ..
+                }) => {
                     list.add_and_unwrap(tag);
                     *remaining -= 1;
                 }
@@ -380,7 +382,7 @@ pub fn read(
 ///
 /// # Errors
 ///
-/// As [`write`].
+/// As [`write`](fn@write).
 pub fn write_any_tag(tag: &Tag, output: &mut impl DataOutput) -> Result<(), NbtError> {
     output.write_byte(tag.id() as i8)?;
     if tag.id() != id::END {
@@ -393,7 +395,7 @@ pub fn write_any_tag(tag: &Tag, output: &mut impl DataOutput) -> Result<(), NbtE
 ///
 /// # Errors
 ///
-/// As [`write`].
+/// As [`write`](fn@write).
 pub fn write_unnamed_tag(tag: &Tag, output: &mut impl DataOutput) -> Result<(), NbtError> {
     output.write_byte(tag.id() as i8)?;
     if tag.id() != id::END {

@@ -1337,12 +1337,15 @@ mod tests {
         assert_eq!(parse(".5"), Ok(Tag::Double(0.5)));
         assert_eq!(parse("1e3"), Ok(Tag::Double(1000.0)));
         assert_eq!(parse("2d"), Ok(Tag::Double(2.0)));
-        assert_eq!(error("012"), ("snbt.parser.leading_zero_not_allowed", 1));
+        // Vanilla reports the first error recorded at the furthest position: for "012" the
+        // float rule's missing '.' at 3 comes before the leading-zero error at 3.
+        assert_eq!(error("012"), ("argument.literal.incorrect", 3));
         assert_eq!(
             error("-0x1"),
-            ("snbt.parser.expected_non_negative_number", 4)
+            ("argument.literal.incorrect", 4)
         );
-        assert_eq!(error("1e999"), ("snbt.parser.infinity_not_allowed", 5));
+        // The float fails (infinite), so the integer 1 is parsed and "e999" is trailing data.
+        assert_eq!(error("1e999"), ("argument.nbt.trailing", 1));
     }
 
     #[test]
@@ -1380,7 +1383,7 @@ mod tests {
         assert_eq!(compound.get_byte_array("c"), Some(&[1i8, 2][..]));
         assert_eq!(parse("[I;]"), Ok(Tag::IntArray(Vec::new())));
         assert_eq!(error("[B; 1s]").0, "snbt.parser.invalid_array_element_type");
-        assert_eq!(error("{\"\": 1}").0, "snbt.parser.empty_key");
+        assert_eq!(error("{\"\": 1}"), ("argument.literal.incorrect", 6));
         assert_eq!(error("{a: 1} x"), ("argument.nbt.trailing", 7));
     }
 }

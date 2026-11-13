@@ -244,6 +244,11 @@ pub struct ValueList(Vec<Value>);
 #[must_use]
 pub fn list<T: Clone + 'static>(scope: &crate::Scope, name: Atom<Vec<T>>) -> Option<Vec<T>> {
     let value = scope.get_value(name.id())?;
+    // A rule's result stored under the same atom is already a typed vector; Java stores a
+    // `List` either way.
+    if let Some(typed) = value.downcast_ref::<Vec<T>>() {
+        return Some(typed.clone());
+    }
     let list = value
         .downcast_ref::<ValueList>()
         .expect("a repetition's list");

@@ -174,6 +174,10 @@ impl Scope {
     }
 
     /// `get(name)`: the value in the current frame, if set.
+    ///
+    /// # Panics
+    ///
+    /// If the stored value has another type than the atom's (a grammar bug).
     #[must_use]
     pub fn get<T: Clone + 'static>(&self, name: Atom<T>) -> Option<T> {
         self.get_raw(name.id())
@@ -193,6 +197,10 @@ impl Scope {
 
     /// `getOrDefault(name, fallback)`. Like Java, a slot that exists with a null value yields
     /// that null, which here means the fallback is not used: `None`.
+    ///
+    /// # Panics
+    ///
+    /// If the stored value has another type than the atom's (a grammar bug).
     #[must_use]
     pub fn get_or_default<T: Clone + 'static>(&self, name: Atom<T>, fallback: T) -> Option<T> {
         match self.value_index(name.id()) {
@@ -205,6 +213,10 @@ impl Scope {
     }
 
     /// `getAny(names...)`: the topmost value stored under any of the atoms.
+    ///
+    /// # Panics
+    ///
+    /// If the stored value has another type than the atom's (a grammar bug).
     #[must_use]
     pub fn get_any<T: Clone + 'static>(&self, names: &[Atom<T>]) -> Option<T> {
         let ids: Vec<u32> = names.iter().map(Atom::id).collect();

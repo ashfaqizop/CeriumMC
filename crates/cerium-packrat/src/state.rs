@@ -30,7 +30,7 @@ impl LongestOnly {
     }
 
     fn store(&mut self, cursor: usize, suggestions: Suggestions, reason: Message) {
-        let cursor_i = cursor as i64;
+        let cursor_i = i64::try_from(cursor).unwrap_or(i64::MAX);
         self.discard_errors_from_shorter_parse(cursor_i);
         if cursor_i == self.last_cursor {
             self.entries.push(ErrorEntry {
@@ -132,24 +132,22 @@ impl<'r> ParseState<'r> {
             self.cache.resize_with(mark_before + 1, Vec::new);
         }
         let position = &self.cache[mark_before];
-        let index = match position.iter().position(|(id, _)| *id == rule.id) {
-            Some(index) => {
-                match &position[index].1 {
-                    Some(CacheEntry::Negative) => return None,
-                    Some(CacheEntry::Value { value, mark_after }) => {
-                        let (value, mark_after) = (Rc::clone(value), *mark_after);
-                        self.restore(mark_after);
-                        return Some(value);
-                    }
-                    // Being parsed at this position already: parse again.
-                    None => {}
+        let found = position.iter().position(|(id, _)| *id == rule.id);
+        let index = if let Some(index) = found {
+            match &position[index].1 {
+                Some(CacheEntry::Negative) => return None,
+                Some(CacheEntry::Value { value, mark_after }) => {
+                    let (value, mark_after) = (Rc::clone(value), *mark_after);
+                    self.restore(mark_after);
+                    return Some(value);
                 }
-                index
+                // Being parsed at this position already: parse again.
+                None => {}
             }
-            None => {
-                self.cache[mark_before].push((rule.id, None));
-                self.cache[mark_before].len() - 1
-            }
+            index
+        } else {
+            self.cache[mark_before].push((rule.id, None));
+            self.cache[mark_before].len() - 1
         };
         let body = rule.rule.borrow().clone().expect("bound rule");
         let result = body.parse(self);
@@ -165,6 +163,10 @@ impl<'r> ParseState<'r> {
     }
 
     /// `parse(rule)`: the rule's value at the current position.
+    ///
+    /// # Panics
+    ///
+    /// If the rule produced another type than its atom's (a grammar bug).
     pub fn parse<T: Clone + 'static>(&mut self, rule: &NamedRule<T>) -> Option<T> {
         self.parse_inner(rule.inner())
             .map(|value| value.downcast_ref::<T>().expect("rule type").clone())
@@ -179,7 +181,7 @@ impl<'r> ParseState<'r> {
     pub fn parse_top_rule<T: Clone + 'static>(&mut self, rule: &NamedRule<T>) -> Option<T> {
         let result = self.parse(rule);
         if result.is_some() {
-            let mark = self.mark() as i64;
+            let mark = i64::try_from(self.mark()).unwrap_or(i64::MAX);
             self.errors.discard_errors_from_shorter_parse(mark);
         }
         assert!(self.scope.has_only_single_frame(), "Malformed scope");
