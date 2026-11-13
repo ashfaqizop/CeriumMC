@@ -13,6 +13,7 @@ publish = false
 
 [workspace.dependencies]
 cerium-golden = { path = "tools/cerium-golden" }
+cerium-java = { path = "crates/cerium-java" }
 cerium-math = { path = "crates/cerium-math" }
 cerium-random = { path = "crates/cerium-random" }
 cerium-util = { path = "crates/cerium-util" }

@@ -7,6 +7,13 @@ name = "cerium-golden"
 version = "0.1.0"
 
 [[package]]
+name = "cerium-java"
+version = "0.1.0"
+dependencies = [
+ "cerium-golden",
+]
+
+[[package]]
 name = "cerium-math"
 version = "0.1.0"
 dependencies = [

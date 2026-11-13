@@ -24,6 +24,8 @@
 //! | `f:3f800000` | `float`, raw IEEE-754 bits in hex |
 //! | `d:3ff0000000000000` | `double`, raw IEEE-754 bits in hex |
 //! | `s:6869` | string, UTF-8 bytes in hex |
+//! | `u:00680069` | Java string, UTF-16 code units in hex (4 digits each), lone surrogates allowed |
+//! | `x:0a00` | bytes in hex |
 //!
 //! Lines starting with `#` are comments.
 
@@ -47,6 +49,10 @@ pub enum Value {
     Double(f64),
     /// A Java `String`.
     Str(String),
+    /// A Java `String` as UTF-16 code units, which may include unpaired surrogates.
+    Utf16(Vec<u16>),
+    /// Raw bytes.
+    Bytes(Vec<u8>),
 }
 
 impl PartialEq for Value {
@@ -65,6 +71,8 @@ impl PartialEq for Value {
                 (a.is_nan() && b.is_nan()) || a.to_bits() == b.to_bits()
             }
             (Self::Str(a), Self::Str(b)) => a == b,
+            (Self::Utf16(a), Self::Utf16(b)) => a == b,
+            (Self::Bytes(a), Self::Bytes(b)) => a == b,
             _ => false,
         }
     }
@@ -80,6 +88,11 @@ impl fmt::Display for Value {
             Self::Float(v) => write!(f, "f:{:08x} ({v:?})", v.to_bits()),
             Self::Double(v) => write!(f, "d:{:016x} ({v:?})", v.to_bits()),
             Self::Str(v) => write!(f, "s:{v:?}"),
+            Self::Utf16(v) => write!(f, "u:{:?}", String::from_utf16_lossy(v)),
+            Self::Bytes(v) => {
+                f.write_str("x:")?;
+                v.iter().try_for_each(|byte| write!(f, "{byte:02x}"))
+            }
         }
     }
 }
@@ -109,21 +122,37 @@ impl Value {
                 Self::Double(f64::from_bits(bits))
             }
             "s" => Self::Str(decode_hex_string(raw).map_err(|e| bad(&e))?),
+            "u" => Self::Utf16(decode_hex_units(raw).map_err(|e| bad(&e))?),
+            "x" => Self::Bytes(decode_hex_bytes(raw).map_err(|e| bad(&e))?),
             _ => return Err(format!("unknown token type in {token:?}")),
         })
     }
 }
 
-fn decode_hex_string(raw: &str) -> Result<String, String> {
+fn decode_hex_bytes(raw: &str) -> Result<Vec<u8>, String> {
     if !raw.len().is_multiple_of(2) {
         return Err("odd number of hex digits".to_owned());
     }
-    let bytes = (0..raw.len())
+    (0..raw.len())
         .step_by(2)
         .map(|i| u8::from_str_radix(&raw[i..i + 2], 16))
         .collect::<Result<Vec<u8>, _>>()
-        .map_err(|e| e.to_string())?;
-    String::from_utf8(bytes).map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())
+}
+
+fn decode_hex_string(raw: &str) -> Result<String, String> {
+    String::from_utf8(decode_hex_bytes(raw)?).map_err(|e| e.to_string())
+}
+
+fn decode_hex_units(raw: &str) -> Result<Vec<u16>, String> {
+    if !raw.len().is_multiple_of(4) {
+        return Err("hex digit count is not a multiple of 4".to_owned());
+    }
+    (0..raw.len())
+        .step_by(4)
+        .map(|i| u16::from_str_radix(&raw[i..i + 4], 16))
+        .collect::<Result<Vec<u16>, _>>()
+        .map_err(|e| e.to_string())
 }
 
 /// One recorded call.
@@ -169,6 +198,38 @@ impl Case {
     accessor!(bool, Bool, bool);
     accessor!(float, Float, f32);
     accessor!(double, Double, f64);
+
+    /// Argument `index` as UTF-16 code units (a `u:` token).
+    ///
+    /// # Panics
+    ///
+    /// Panics if the argument is missing or has another type.
+    #[must_use]
+    pub fn utf16(&self, index: usize) -> &[u16] {
+        match self.args.get(index) {
+            Some(Value::Utf16(value)) => value,
+            other => panic!(
+                "line {}: {} argument {index} should be Utf16, found {other:?}",
+                self.line, self.op
+            ),
+        }
+    }
+
+    /// Argument `index` as bytes (an `x:` token).
+    ///
+    /// # Panics
+    ///
+    /// Panics if the argument is missing or has another type.
+    #[must_use]
+    pub fn bytes(&self, index: usize) -> &[u8] {
+        match self.args.get(index) {
+            Some(Value::Bytes(value)) => value,
+            other => panic!(
+                "line {}: {} argument {index} should be Bytes, found {other:?}",
+                self.line, self.op
+            ),
+        }
+    }
 
     /// Argument `index` as a `String`.
     ///
@@ -341,7 +402,8 @@ mod tests {
 
     #[test]
     fn parses_every_token_type() {
-        let text = "# comment\nop i:-3 l:9 b:-1 z:1 f:3f800000 d:4000000000000000 s:6869 = i:7\n";
+        let text = "# comment\nop i:-3 l:9 b:-1 z:1 f:3f800000 d:4000000000000000 s:6869 \
+            u:0068d800 x:0aff = i:7\n";
         let cases = parse(text).unwrap();
         assert_eq!(cases.len(), 1);
         let case = &cases[0];
@@ -354,6 +416,8 @@ mod tests {
         assert_eq!(case.float(4).to_bits(), 1.0_f32.to_bits());
         assert_eq!(case.double(5).to_bits(), 2.0_f64.to_bits());
         assert_eq!(case.string(6), "hi");
+        assert_eq!(case.utf16(7), [0x68, 0xD800]);
+        assert_eq!(case.bytes(8), [0x0A, 0xFF]);
         assert_eq!(case.expected, [Value::Int(7)]);
     }
 
