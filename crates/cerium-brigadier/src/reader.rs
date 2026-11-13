@@ -262,7 +262,10 @@ impl StringReader {
     ///
     /// `parsing.quote.escape` (cursor on the escaped character) or
     /// `parsing.quote.expected.end`.
-    pub fn read_string_until(&mut self, terminator: u16) -> Result<JString, CommandSyntaxException> {
+    pub fn read_string_until(
+        &mut self,
+        terminator: u16,
+    ) -> Result<JString, CommandSyntaxException> {
         let mut result = JStringBuilder::new();
         let mut escaped = false;
         while self.can_read() {
@@ -383,7 +386,10 @@ mod tests {
             error.message(),
             &Message::translatable_with("parsing.int.invalid", vec![Arg::from("1-2")])
         );
-        assert_eq!(key(&reader("x").read_long().unwrap_err()), "parsing.long.expected");
+        assert_eq!(
+            key(&reader("x").read_long().unwrap_err()),
+            "parsing.long.expected"
+        );
     }
 
     #[test]
@@ -398,7 +404,10 @@ mod tests {
         let error = r.read_string().unwrap_err();
         assert_eq!(key(&error), "parsing.quote.escape");
         assert_eq!(error.cursor(), 25);
-        assert_eq!(key(&reader("\"open").read_string().unwrap_err()), "parsing.quote.expected.end");
+        assert_eq!(
+            key(&reader("\"open").read_string().unwrap_err()),
+            "parsing.quote.expected.end"
+        );
     }
 
     #[test]
@@ -408,7 +417,10 @@ mod tests {
         assert_eq!(key(&error), "parsing.bool.invalid");
         assert_eq!(error.cursor(), 0);
         let mut r = reader("a");
-        assert_eq!(key(&r.expect(u16::from(b'b')).unwrap_err()), "parsing.expected");
+        assert_eq!(
+            key(&r.expect(u16::from(b'b')).unwrap_err()),
+            "parsing.expected"
+        );
         assert_eq!(r.expect(u16::from(b'a')), Ok(()));
     }
 

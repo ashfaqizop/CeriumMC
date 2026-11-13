@@ -187,25 +187,37 @@ pub mod builtin {
     /// `doubleTooLow`: `argument.double.low` with the minimum and the value found.
     #[must_use]
     pub fn double_too_low(found: f64, min: f64) -> Message {
-        with("argument.double.low", vec![Arg::Double(min), Arg::Double(found)])
+        with(
+            "argument.double.low",
+            vec![Arg::Double(min), Arg::Double(found)],
+        )
     }
 
     /// `doubleTooHigh`: `argument.double.big` with the maximum and the value found.
     #[must_use]
     pub fn double_too_high(found: f64, max: f64) -> Message {
-        with("argument.double.big", vec![Arg::Double(max), Arg::Double(found)])
+        with(
+            "argument.double.big",
+            vec![Arg::Double(max), Arg::Double(found)],
+        )
     }
 
     /// `floatTooLow`.
     #[must_use]
     pub fn float_too_low(found: f32, min: f32) -> Message {
-        with("argument.float.low", vec![Arg::Float(min), Arg::Float(found)])
+        with(
+            "argument.float.low",
+            vec![Arg::Float(min), Arg::Float(found)],
+        )
     }
 
     /// `floatTooHigh`.
     #[must_use]
     pub fn float_too_high(found: f32, max: f32) -> Message {
-        with("argument.float.big", vec![Arg::Float(max), Arg::Float(found)])
+        with(
+            "argument.float.big",
+            vec![Arg::Float(max), Arg::Float(found)],
+        )
     }
 
     /// `integerTooLow`.
@@ -356,11 +368,8 @@ mod tests {
         let input = JString::from("give @p minecraft:diamond 99x");
         let error = CommandSyntaxException::at(builtin::reader_expected_int(), input, 28);
         assert_eq!(error.context().unwrap(), "...diamond 99<--[HERE]");
-        let short = CommandSyntaxException::at(
-            builtin::reader_expected_int(),
-            JString::from("ab"),
-            1,
-        );
+        let short =
+            CommandSyntaxException::at(builtin::reader_expected_int(), JString::from("ab"), 1);
         assert_eq!(short.context().unwrap(), "a<--[HERE]");
         assert_eq!(
             short.to_string(),
