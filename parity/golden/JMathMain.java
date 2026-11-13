@@ -127,12 +127,13 @@ public final class JMathMain {
             binary("jm.pow", Math::pow, anyBits(), anyBits());
         }
         // StrictMath-backed functions that vanilla calls (Java's pure-Java FdLibm port): atan2,
-        // asin, acos and log1p. CeriumMC uses the libm crate for these and must match bit for bit.
+        // asin, acos, hypot and log1p. CeriumMC uses the libm crate for these and must match bit for bit.
         for (double x : SPECIAL) {
             unary("jm.asin", Math::asin, x);
             unary("jm.acos", Math::acos, x);
             unary("jm.log1p", Math::log1p, x);
             for (double y : SPECIAL) binary("jm.atan2", Math::atan2, x, y);
+            for (double y : SPECIAL) binary("jm.hypot", Math::hypot, x, y);
         }
         for (int i = 0; i < N; i++) {
             unary("jm.asin", Math::asin, rnd.nextDouble(-1.0, 1.0));
@@ -142,6 +143,8 @@ public final class JMathMain {
             unary("jm.log1p", Math::log1p, anyBits());
             binary("jm.atan2", Math::atan2, rnd.nextDouble(-10.0, 10.0), rnd.nextDouble(-10.0, 10.0));
             binary("jm.atan2", Math::atan2, anyBits(), anyBits());
+            binary("jm.hypot", Math::hypot, rnd.nextDouble(-10.0, 10.0), rnd.nextDouble(-10.0, 10.0));
+            binary("jm.hypot", Math::hypot, anyBits(), anyBits());
         }
         // log, log10, pow: a dense sweep over the mantissa. The stubs' RCPPS step reads the top
         // 23 mantissa bits, and Intel and AMD differ for about 1.6% of them, so each of the 2^19

@@ -7,7 +7,8 @@
 //! - [`hotspot`]: HotSpot's x86_64 `java.lang.Math` intrinsics (`sin`, `cos`, `exp`, `log`,
 //!   `log10`, `pow`), transcribed from the JDK's assembly stubs.
 //! - [`fdlibm`]: the `StrictMath` functions vanilla calls (`asin`, `acos`, `atan`, `atan2`,
-//!   `log1p`), transcribed from Java's `FdLibm`.
+//!   `hypot`, `log1p`), transcribed from Java's `FdLibm`.
+//! - [`joml`]: the `org.joml.Math` methods vanilla calls (JOML 1.10.9).
 //!
 //! Every function gives the same result as vanilla on every platform. Nothing calls the
 //! platform's math library or a third-party libm, so results don't depend on the operating
@@ -27,4 +28,5 @@
 pub mod fdlibm;
 pub mod hotspot;
 pub mod java;
+pub mod joml;
 pub mod mth;

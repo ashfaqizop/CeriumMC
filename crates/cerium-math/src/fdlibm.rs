@@ -1,5 +1,5 @@
 //! Bit-exact ports of Java's `StrictMath` functions that vanilla calls through `Math`:
-//! [`asin`], [`acos`], [`atan`], [`atan2`] and [`log1p`].
+//! [`asin`], [`acos`], [`atan`], [`atan2`], [`hypot`] and [`log1p`].
 //!
 //! Java computes these with `java.lang.FdLibm`, a pure-Java port of fdlibm 5.3, using strict
 //! IEEE double arithmetic. They are transcribed here from `FdLibm.java` of OpenJDK 25.0.1
@@ -457,5 +457,79 @@ pub fn log1p(x: f64) -> f64 {
         f - (hfsq - s * (hfsq + r))
     } else {
         kf * LN2_HI - ((hfsq - (s * (hfsq + r) + (kf * LN2_LO + c))) - f)
+    }
+}
+
+/// `StrictMath.hypot(x, y)` (`FdLibm.Hypot`): `sqrt(x^2 + y^2)` without undue overflow or
+/// underflow. Vanilla calls it through `Math.hypot` in `MatrixUtil`.
+#[must_use]
+pub fn hypot(x: f64, y: f64) -> f64 {
+    const TWO_MINUS_600: f64 = f64::from_bits(0x1A70_0000_0000_0000);
+    const TWO_PLUS_600: f64 = f64::from_bits(0x6570_0000_0000_0000);
+    const ABOUT_TWO_500: f64 = f64::from_bits(0x5F30_0000_FFFF_FFFF); // 0x1.00000_ffff_ffffp500
+    const TWO_MINUS_500: f64 = f64::from_bits(0x20B0_0000_0000_0000);
+    const TWO_1022: f64 = f64::from_bits(0x7FD0_0000_0000_0000);
+    let mut a = x.abs();
+    let mut b = y.abs();
+    if !a.is_finite() || !b.is_finite() {
+        if a == f64::INFINITY || b == f64::INFINITY {
+            return f64::INFINITY;
+        }
+        return add_nan(a, b); // propagate NaN significand bits
+    }
+    if b > a {
+        std::mem::swap(&mut a, &mut b);
+    }
+    let mut ha = hi(a);
+    let mut hb = hi(b);
+    if ha - hb > 0x03C0_0000 {
+        return a + b; // x / y > 2^60
+    }
+    let mut k = 0;
+    if a > ABOUT_TWO_500 {
+        // scale a and b by 2^-600
+        ha -= 0x2580_0000;
+        hb -= 0x2580_0000;
+        a *= TWO_MINUS_600;
+        b *= TWO_MINUS_600;
+        k += 600;
+    }
+    if b < TWO_MINUS_500 {
+        if b < f64::MIN_POSITIVE {
+            // subnormal b or 0
+            if b == 0.0 {
+                return a;
+            }
+            b *= TWO_1022;
+            a *= TWO_1022;
+            k -= 1022;
+        } else {
+            // scale a and b by 2^600
+            ha += 0x2580_0000;
+            hb += 0x2580_0000;
+            a *= TWO_PLUS_600;
+            b *= TWO_PLUS_600;
+            k -= 600;
+        }
+    }
+    // medium size a and b
+    let mut w = a - b;
+    if w > b {
+        let t1 = with_hi(0.0, ha);
+        let t2 = a - t1;
+        w = (t1 * t1 - (b * (-b) - t2 * (a + t1))).sqrt();
+    } else {
+        a += a;
+        let y1 = with_hi(0.0, hb);
+        let y2 = b - y1;
+        let t1 = with_hi(0.0, ha + 0x0010_0000);
+        let t2 = a - t1;
+        w = (t1 * y1 - (w * (-w) - (t1 * y2 + t2 * b))).sqrt();
+    }
+    if k == 0 {
+        w
+    } else {
+        // Math.powerOfTwoD(k): k is 600, -600 or -1022, all in the normal range.
+        f64::from_bits(((k + 1023) as u64) << 52) * w
     }
 }

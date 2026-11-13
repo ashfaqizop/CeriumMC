@@ -38,6 +38,7 @@ fn hotspot_math_matches_the_jdk() {
             "jm.acos" => fdlibm::acos(x),
             "jm.log1p" => fdlibm::log1p(x),
             "jm.atan2" => fdlibm::atan2(x, case.double(1)),
+            "jm.hypot" => fdlibm::hypot(x, case.double(1)),
             other => {
                 *not_ported.entry(other).or_default() += 1;
                 continue;
