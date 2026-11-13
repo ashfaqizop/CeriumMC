@@ -3,7 +3,7 @@
 //!
 //! Unlike the other golden tests, NaN results of the HotSpot ports must match exactly too:
 //! they model x86 NaN rules, so they reproduce HotSpot's NaN bit patterns on every platform.
-//! The `StrictMath`-backed functions (`asin`, `acos`, `log1p`, `atan2`: Java's FdLibm, here
+//! The `StrictMath`-backed functions (`asin`, `acos`, `log1p`, `atan2`: Java's `FdLibm`, here
 //! the `libm` crate) must match exactly except for NaN payloads.
 
 use std::collections::BTreeMap;
@@ -48,7 +48,10 @@ fn hotspot_math_matches_the_jdk() {
         };
         // The HotSpot ports model x86 NaN rules exactly. The libm-backed functions use the host
         // CPU's NaNs, whose payloads vanilla never observes (writeDouble canonicalizes NaN).
-        let fdlibm = matches!(case.op.as_str(), "jm.asin" | "jm.acos" | "jm.log1p" | "jm.atan2");
+        let fdlibm = matches!(
+            case.op.as_str(),
+            "jm.asin" | "jm.acos" | "jm.log1p" | "jm.atan2"
+        );
         let both_nan = actual.is_nan() && expected.is_nan();
         if actual.to_bits() != expected.to_bits() && !(fdlibm && both_nan) {
             failures.push(format!(
