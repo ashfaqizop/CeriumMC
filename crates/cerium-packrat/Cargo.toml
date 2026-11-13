@@ -1,0 +1,17 @@
+[package]
+name = "cerium-packrat"
+description = "A faithful port of vanilla's packrat parser, which SNBT and command arguments are parsed with."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+cerium-brigadier.workspace = true
+cerium-java.workspace = true
+
+[lints]
+workspace = true
