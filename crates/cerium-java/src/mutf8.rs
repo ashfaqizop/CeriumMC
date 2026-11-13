@@ -168,9 +168,18 @@ mod tests {
     #[test]
     fn rejects_like_java() {
         let message = |bytes: &[u8]| decode(bytes).unwrap_err().message().to_owned();
-        assert_eq!(message(&[0x41, 0xC3]), "malformed input: partial character at end");
-        assert_eq!(message(&[0x41, 0xC3, 0x41]), "malformed input around byte 3");
-        assert_eq!(message(&[0xE0, 0x80, 0x41]), "malformed input around byte 2");
+        assert_eq!(
+            message(&[0x41, 0xC3]),
+            "malformed input: partial character at end"
+        );
+        assert_eq!(
+            message(&[0x41, 0xC3, 0x41]),
+            "malformed input around byte 3"
+        );
+        assert_eq!(
+            message(&[0xE0, 0x80, 0x41]),
+            "malformed input around byte 2"
+        );
         assert_eq!(message(&[0x41, 0x80]), "malformed input around byte 1");
         assert_eq!(message(&[0xF0]), "malformed input around byte 0");
     }

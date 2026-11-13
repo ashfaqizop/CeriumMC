@@ -108,9 +108,9 @@ fn eval(case: &Case) -> Vec<Value> {
             let digit = character::digit(case.int(0) as u16, radix(1));
             one(Value::Int(digit.map_or(-1, |d| d as i32)))
         }
-        "jstd.name" => one(
-            character::name(case.int(0) as u32).map_or(Value::Bool(false), |name| utf16(&name)),
-        ),
+        "jstd.name" => {
+            one(character::name(case.int(0) as u32).map_or(Value::Bool(false), |name| utf16(&name)))
+        }
         "jstd.cp_of" => one(match character::code_point_of(&arg_jstring(case, 0)) {
             Some(cp) => Value::Int(cp as i32),
             // CeriumMC reports only that no character has the name; Java's message is
@@ -145,14 +145,21 @@ fn eval(case: &Case) -> Vec<Value> {
 /// steps, and renders the final iteration order as `<key index>=<value>,` entries.
 fn run_map(pool: &[JString], script: &str) -> String {
     let mut steps = script.split(';').filter(|step| !step.is_empty());
-    let initial: i32 = steps.next().expect("initial capacity").parse().expect("int");
+    let initial: i32 = steps
+        .next()
+        .expect("initial capacity")
+        .parse()
+        .expect("int");
     let mut map: JavaHashMap<JString, i32> = if initial >= 0 {
         JavaHashMap::with_capacity(initial)
     } else {
         JavaHashMap::new()
     };
     for step in steps {
-        let fields: Vec<usize> = step[1..].split(':').map(|f| f.parse().expect("number")).collect();
+        let fields: Vec<usize> = step[1..]
+            .split(':')
+            .map(|f| f.parse().expect("number"))
+            .collect();
         let key = pool[fields[0]].clone();
         let value = fields[1] as i32;
         match step.as_bytes()[0] {

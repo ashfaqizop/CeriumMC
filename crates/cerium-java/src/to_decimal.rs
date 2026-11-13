@@ -238,7 +238,11 @@ fn double_decimal(out: &mut String, q: i32, c: i64, dk: i32) {
     }
     // Both round back: pick the closer, or the even one on a tie.
     let cmp = vb - ((s + t) << 1);
-    let f = if cmp < 0 || cmp == 0 && s & 1 == 0 { s } else { t };
+    let f = if cmp < 0 || cmp == 0 && s & 1 == 0 {
+        s
+    } else {
+        t
+    };
     double_chars(out, f, k + dk);
 }
 
@@ -364,7 +368,11 @@ fn float_decimal(out: &mut String, q: i32, c: i32, dk: i32) {
         return;
     }
     let cmp = vb - ((s + t) << 1);
-    let f = if cmp < 0 || cmp == 0 && s & 1 == 0 { s } else { t };
+    let f = if cmp < 0 || cmp == 0 && s & 1 == 0 {
+        s
+    } else {
+        t
+    };
     float_chars(out, f, k + dk);
 }
 

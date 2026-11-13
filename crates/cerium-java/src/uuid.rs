@@ -54,7 +54,9 @@ fn parse_4_nibbles(name: &JString, pos: usize) -> i64 {
     units
         .iter()
         .try_fold(0i64, |value, &unit| {
-            char::from(unit as u8).to_digit(16).map(|d| (value << 4) | i64::from(d))
+            char::from(unit as u8)
+                .to_digit(16)
+                .map(|d| (value << 4) | i64::from(d))
         })
         .unwrap_or(-1)
 }
@@ -88,9 +90,7 @@ fn from_string_slow(name: &JString) -> Result<(i64, i64), UuidFormatError> {
     }
     let dash = u16::from(b'-');
     // Java's `indexOf` with -1 for "not found"; a search from -1 + 1 starts at 0.
-    let index_of = |from: i64| {
-        name.index_of(dash, from as usize).map_or(-1, |i| i as i64)
-    };
+    let index_of = |from: i64| name.index_of(dash, from as usize).map_or(-1, |i| i as i64);
     let dash1 = index_of(0);
     let dash2 = index_of(dash1 + 1);
     let dash3 = index_of(dash2 + 1);
@@ -105,11 +105,12 @@ fn from_string_slow(name: &JString) -> Result<(i64, i64), UuidFormatError> {
         });
     }
     let field = |begin: i64, end: i64| {
-        number::parse_long_range(name, begin as usize, end as usize, 16)
-            .map_err(|error| UuidFormatError {
+        number::parse_long_range(name, begin as usize, end as usize, 16).map_err(|error| {
+            UuidFormatError {
                 number_format: true,
                 message: error.message().clone(),
-            })
+            }
+        })
     };
     let mut msb = field(0, dash1)? & 0xFFFF_FFFF;
     msb <<= 16;
@@ -134,7 +135,10 @@ mod tests {
     fn canonical_form() {
         assert_eq!(
             parse("f81d4fae-7dec-11d0-a765-00a0c91e6bf6"),
-            Ok((0xF81D_4FAE_7DEC_11D0_u64 as i64, 0xA765_00A0_C91E_6BF6_u64 as i64))
+            Ok((
+                0xF81D_4FAE_7DEC_11D0_u64 as i64,
+                0xA765_00A0_C91E_6BF6_u64 as i64
+            ))
         );
     }
 
@@ -148,8 +152,14 @@ mod tests {
 
     #[test]
     fn errors_carry_javas_messages() {
-        assert_eq!(parse("1-2-3-4"), Err("Invalid UUID string: 1-2-3-4".to_owned()));
-        assert_eq!(parse(&"0".repeat(37)), Err("UUID string too large".to_owned()));
+        assert_eq!(
+            parse("1-2-3-4"),
+            Err("Invalid UUID string: 1-2-3-4".to_owned())
+        );
+        assert_eq!(
+            parse(&"0".repeat(37)),
+            Err("UUID string too large".to_owned())
+        );
         assert_eq!(
             parse("1-2-3-4-"),
             Err("For input string: \"\" under radix 16".to_owned())

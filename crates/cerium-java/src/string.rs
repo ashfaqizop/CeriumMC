@@ -134,8 +134,9 @@ impl JString {
     /// `hashCode()`: `s[0]*31^(n-1) + ... + s[n-1]` with 32-bit wrapping arithmetic.
     #[must_use]
     pub fn hash_code(&self) -> i32 {
-        self.units()
-            .fold(0i32, |hash, unit| hash.wrapping_mul(31).wrapping_add(i32::from(unit)))
+        self.units().fold(0i32, |hash, unit| {
+            hash.wrapping_mul(31).wrapping_add(i32::from(unit))
+        })
     }
 
     /// `compareTo`: lexicographic order of the code units, then by length.
@@ -199,8 +200,14 @@ impl JString {
     #[must_use]
     pub fn trim(&self) -> Self {
         let units = self.to_utf16();
-        let start = units.iter().position(|&unit| unit > 0x20).unwrap_or(units.len());
-        let end = units.iter().rposition(|&unit| unit > 0x20).map_or(start, |last| last + 1);
+        let start = units
+            .iter()
+            .position(|&unit| unit > 0x20)
+            .unwrap_or(units.len());
+        let end = units
+            .iter()
+            .rposition(|&unit| unit > 0x20)
+            .map_or(start, |last| last + 1);
         Self::from_utf16(&units[start..end])
     }
 
@@ -213,7 +220,10 @@ impl JString {
     /// The index of the first occurrence of `unit` at or after `from` (`indexOf(char, from)`).
     #[must_use]
     pub fn index_of(&self, unit: u16, from: usize) -> Option<usize> {
-        self.units().skip(from).position(|u| u == unit).map(|i| i + from)
+        self.units()
+            .skip(from)
+            .position(|u| u == unit)
+            .map(|i| i + from)
     }
 }
 
@@ -233,7 +243,9 @@ impl Ord for JString {
 impl From<&str> for JString {
     fn from(value: &str) -> Self {
         if value.chars().all(|c| u32::from(c) <= 0xFF) {
-            Self(Repr::Latin1(value.chars().map(|c| u32::from(c) as u8).collect()))
+            Self(Repr::Latin1(
+                value.chars().map(|c| u32::from(c) as u8).collect(),
+            ))
         } else {
             Self(Repr::Utf16(value.encode_utf16().collect()))
         }
@@ -376,7 +388,10 @@ mod tests {
 
     #[test]
     fn the_representation_is_canonical() {
-        assert_eq!(JString::from("abc"), JString::from_utf16(&[0x61, 0x62, 0x63]));
+        assert_eq!(
+            JString::from("abc"),
+            JString::from_utf16(&[0x61, 0x62, 0x63])
+        );
         assert_eq!(JString::from("\u{FF}"), JString::from_latin1(&[0xFF]));
         assert!(JString::from("\u{100}").as_latin1().is_none());
         assert_eq!(JString::from("\u{1F600}").len(), 2);
@@ -396,7 +411,10 @@ mod tests {
         let halfwidth = JString::from("\u{FF61}");
         let emoji = JString::from("\u{1F600}");
         assert_eq!(halfwidth.compare_to(&emoji), Ordering::Greater);
-        assert_eq!(JString::from("ab").compare_to(&JString::from("abc")), Ordering::Less);
+        assert_eq!(
+            JString::from("ab").compare_to(&JString::from("abc")),
+            Ordering::Less
+        );
     }
 
     #[test]
@@ -412,7 +430,10 @@ mod tests {
         assert_eq!(JString::from(" \u{1}x y\t").trim(), "x y");
         assert!(JString::from("TrUe").equals_ignore_ascii_case("true"));
         assert!(!JString::from("tru").equals_ignore_ascii_case("true"));
-        assert_eq!(JString::from("a b c").last_index_of(u16::from(b' ')), Some(3));
+        assert_eq!(
+            JString::from("a b c").last_index_of(u16::from(b' ')),
+            Some(3)
+        );
         assert_eq!(JString::from("a{b}").index_of(u16::from(b'}'), 1), Some(3));
         assert!(JString::from("é") == "é");
     }

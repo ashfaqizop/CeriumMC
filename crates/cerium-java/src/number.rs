@@ -44,7 +44,10 @@ impl std::error::Error for NumberFormatError {}
 /// `NumberFormatException.forInputString`.
 fn for_input_string(s: &JString, radix: u32) -> NumberFormatError {
     let mut message = JStringBuilder::new();
-    message.push_str("For input string: \"").push_jstring(s).push_str("\"");
+    message
+        .push_str("For input string: \"")
+        .push_jstring(s)
+        .push_str("\"");
     if radix != 10 {
         message.push_str(&format!(" under radix {radix}"));
     }
@@ -104,7 +107,11 @@ pub fn parse_int(s: &JString, radix: u32) -> Result<i32, NumberFormatError> {
         digit = self::digit(first, radix);
     }
     if digit >= 0 || digit == SIGN_SENTINEL && len > 1 {
-        let limit = if first == MINUS { i32::MIN } else { i32::MIN + 1 };
+        let limit = if first == MINUS {
+            i32::MIN
+        } else {
+            i32::MIN + 1
+        };
         let multmin = limit / r;
         let mut result = -(digit & 0xFF);
         let mut in_range = true;
@@ -158,7 +165,10 @@ pub fn parse_long_range(
     end: usize,
     radix: u32,
 ) -> Result<i64, NumberFormatError> {
-    assert!(begin <= end && end <= s.len(), "range {begin}..{end} out of bounds");
+    assert!(
+        begin <= end && end <= s.len(),
+        "range {begin}..{end} out of bounds"
+    );
     check_radix(radix)?;
     if begin == end {
         return Err(for_input_string(&JString::new(), radix));
@@ -179,7 +189,11 @@ fn parse_long_core(s: &JString, begin: usize, end: usize, radix: u32) -> Result<
         digit = self::digit(first, radix);
     }
     if digit >= 0 || digit == SIGN_SENTINEL && end - begin > 1 {
-        let limit = if first == MINUS { i64::MIN } else { i64::MIN + 1 };
+        let limit = if first == MINUS {
+            i64::MIN
+        } else {
+            i64::MIN + 1
+        };
         let multmin = limit / r;
         let mut result = -i64::from(digit & 0xFF);
         let mut in_range = true;
@@ -189,8 +203,8 @@ fn parse_long_core(s: &JString, begin: usize, end: usize, radix: u32) -> Result<
             if digit < 0 {
                 break;
             }
-            in_range = result > multmin
-                || result == multmin && digit <= (r * multmin - limit) as i32;
+            in_range =
+                result > multmin || result == multmin && digit <= (r * multmin - limit) as i32;
             if !in_range {
                 break;
             }
@@ -285,7 +299,9 @@ pub fn parse_unsigned_long(s: &JString, radix: u32) -> Result<i64, NumberFormatE
             if !in_range {
                 break;
             }
-            result = i64::from(radix).wrapping_mul(result).wrapping_add(i64::from(digit));
+            result = i64::from(radix)
+                .wrapping_mul(result)
+                .wrapping_add(i64::from(digit));
         }
         if in_range && i == len && digit >= 0 {
             return Ok(result);
@@ -396,13 +412,25 @@ const BINARY_64: Format = Format {
 
 /// What `FloatingDecimal.readJavaFormatString` found.
 enum Scanned {
-    Zero { negative: bool },
-    Infinity { negative: bool },
+    Zero {
+        negative: bool,
+    },
+    Infinity {
+        negative: bool,
+    },
     NaN,
     /// A finite binary value `c * 2^q` that was rounded directly (hexadecimal input).
-    Binary { negative: bool, q: i32, c: i64 },
+    Binary {
+        negative: bool,
+        q: i32,
+        c: i64,
+    },
     /// The decimal `0.<digits> * 10^e`, still to be rounded.
-    Decimal { negative: bool, digits: String, e: i64 },
+    Decimal {
+        negative: bool,
+        digits: String,
+        e: i64,
+    },
 }
 
 /// `Double.parseDouble(s)`.
@@ -416,13 +444,20 @@ pub fn parse_double(s: &JString) -> Result<f64, NumberFormatError> {
         Scanned::Infinity { negative } => sign(negative, f64::INFINITY),
         Scanned::NaN => f64::NAN,
         Scanned::Binary { negative, q, c } => {
-            let be = if c < 1 << 52 { 0 } else { i64::from(q) + (1022 + 53) };
-            let bits = (u64::from(negative) << 63)
-                | ((be as u64) << 52)
-                | (c as u64 & ((1 << 52) - 1));
+            let be = if c < 1 << 52 {
+                0
+            } else {
+                i64::from(q) + (1022 + 53)
+            };
+            let bits =
+                (u64::from(negative) << 63) | ((be as u64) << 52) | (c as u64 & ((1 << 52) - 1));
             f64::from_bits(bits)
         }
-        Scanned::Decimal { negative, digits, e } => {
+        Scanned::Decimal {
+            negative,
+            digits,
+            e,
+        } => {
             let value: f64 = format!("0.{digits}e{e}").parse().expect("valid decimal");
             sign(negative, value)
         }
@@ -441,12 +476,15 @@ pub fn parse_float(s: &JString) -> Result<f32, NumberFormatError> {
         Scanned::NaN => f32::NAN,
         Scanned::Binary { negative, q, c } => {
             let be = if c < 1 << 23 { 0 } else { q + (126 + 24) };
-            let bits = (u32::from(negative) << 31)
-                | ((be as u32) << 23)
-                | (c as u32 & ((1 << 23) - 1));
+            let bits =
+                (u32::from(negative) << 31) | ((be as u32) << 23) | (c as u32 & ((1 << 23) - 1));
             f32::from_bits(bits)
         }
-        Scanned::Decimal { negative, digits, e } => {
+        Scanned::Decimal {
+            negative,
+            digits,
+            e,
+        } => {
             let value: f32 = format!("0.{digits}e{e}").parse().expect("valid decimal");
             if negative { -value } else { value }
         }
@@ -480,7 +518,10 @@ fn syntax_error(s: &JString) -> NumberFormatError {
 }
 
 /// `FloatingDecimal.readJavaFormatString`: the syntax check and the parts of the value.
-#[allow(clippy::too_many_lines, reason = "a line-by-line transcription of the JDK method")]
+#[allow(
+    clippy::too_many_lines,
+    reason = "a line-by-line transcription of the JDK method"
+)]
 fn scan(s: &JString, fmt: &Format) -> Result<Scanned, NumberFormatError> {
     let units = s.to_utf16();
     let len = units.len();
@@ -637,9 +678,9 @@ fn scan(s: &JString, fmt: &Format) -> Result<Scanned, NumberFormatError> {
     if !is_dec {
         // Hexadecimal: keep enough digits for rounding, plus a sticky bit.
         let le = (n as usize).min(fmt.hex_count);
-        let mut c: i64 = significant()
-            .take(le)
-            .fold(0, |c, digit| (c << 4) | i64::from(digit.to_digit(16).expect("hex digit")));
+        let mut c: i64 = significant().take(le).fold(0, |c, digit| {
+            (c << 4) | i64::from(digit.to_digit(16).expect("hex digit"))
+        });
         if n as usize > le {
             c |= 1;
             ep += 4 * (n - le as i64);
@@ -739,7 +780,10 @@ mod tests {
         );
         assert_eq!(parse_unsigned_long(&j("ffffffffffffffff"), 16), Ok(-1));
         assert_eq!(parse_unsigned_byte(&j("255"), 10), Ok(-1));
-        assert_eq!(message(parse_unsigned_byte(&j("256"), 10)), "out of range: 256");
+        assert_eq!(
+            message(parse_unsigned_byte(&j("256"), 10)),
+            "out of range: 256"
+        );
     }
 
     #[test]
@@ -773,10 +817,7 @@ mod tests {
         assert_eq!(parse_float(&j("0x1p-150")), Ok(0.0));
         assert_eq!(message(parse_double(&j(""))), "empty String");
         assert_eq!(message(parse_double(&j("1..2"))), "multiple points");
-        assert_eq!(
-            message(parse_double(&j("1e"))),
-            "For input string: \"1e\""
-        );
+        assert_eq!(message(parse_double(&j("1e"))), "For input string: \"1e\"");
         assert_eq!(
             message(parse_double(&j("0x1"))),
             "For input string: \"0x1\""

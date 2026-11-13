@@ -16,7 +16,9 @@
     clippy::cast_possible_wrap,
     clippy::cast_precision_loss,
     clippy::cast_sign_loss,
-    reason = "these are deliberate ports of Java's primitive conversions"
+    clippy::many_single_char_names,
+    clippy::similar_names,
+    reason = "deliberate ports of Java's primitive conversions, keeping the JDK's variable names"
 )]
 
 pub mod character;

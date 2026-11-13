@@ -76,8 +76,9 @@ impl JavaKey for JString {
 
 impl Equivalent<JString> for str {
     fn java_hash_code(&self) -> i32 {
-        self.encode_utf16()
-            .fold(0i32, |hash, unit| hash.wrapping_mul(31).wrapping_add(i32::from(unit)))
+        self.encode_utf16().fold(0i32, |hash, unit| {
+            hash.wrapping_mul(31).wrapping_add(i32::from(unit))
+        })
     }
 
     fn equivalent(&self, key: &JString) -> bool {
@@ -174,7 +175,10 @@ impl<K, V> JavaHashMap<K, V> {
     /// If `initial_capacity` is negative (Java's `IllegalArgumentException`).
     #[must_use]
     pub fn with_capacity(initial_capacity: i32) -> Self {
-        assert!(initial_capacity >= 0, "Illegal initial capacity: {initial_capacity}");
+        assert!(
+            initial_capacity >= 0,
+            "Illegal initial capacity: {initial_capacity}"
+        );
         let capacity = initial_capacity.min(MAXIMUM_CAPACITY as i32);
         Self {
             threshold: table_size_for(capacity),
@@ -239,7 +243,9 @@ impl<K, V> JavaHashMap<K, V> {
             .iter_mut()
             .map(|slot| slot.as_mut().map(|node| &mut node.value))
             .collect();
-        order.into_iter().filter_map(move |i| slots[i as usize].take())
+        order
+            .into_iter()
+            .filter_map(move |i| slots[i as usize].take())
     }
 
     /// The node indices in iteration order.
@@ -490,7 +496,11 @@ impl<K, V> JavaHashMap<K, V> {
     where
         Q: Equivalent<K> + ?Sized,
     {
-        let start = if self.node(first).parent == NIL { first } else { self.root(first) };
+        let start = if self.node(first).parent == NIL {
+            first
+        } else {
+            self.root(first)
+        };
         self.find(start, h, k)
     }
 
@@ -540,7 +550,11 @@ impl<K, V> JavaHashMap<K, V> {
                 loop {
                     let dir = self.tree_dir(h, &self.node(x).key, p);
                     let xp = p;
-                    p = if dir <= 0 { self.node(p).left } else { self.node(p).right };
+                    p = if dir <= 0 {
+                        self.node(p).left
+                    } else {
+                        self.node(p).right
+                    };
                     if p == NIL {
                         self.node_mut(x).parent = xp;
                         if dir <= 0 {
@@ -575,7 +589,11 @@ impl<K, V> JavaHashMap<K, V> {
     where
         K: JavaKey,
     {
-        let root = if self.node(first).parent == NIL { first } else { self.root(first) };
+        let root = if self.node(first).parent == NIL {
+            first
+        } else {
+            self.root(first)
+        };
         let mut searched = false;
         let mut p = root;
         loop {
@@ -613,7 +631,11 @@ impl<K, V> JavaHashMap<K, V> {
                 }
             };
             let xp = p;
-            p = if dir <= 0 { self.node(xp).left } else { self.node(xp).right };
+            p = if dir <= 0 {
+                self.node(xp).left
+            } else {
+                self.node(xp).right
+            };
             if p == NIL {
                 let xpn = self.node(xp).next;
                 let x = self.alloc(h, k, v, xpn);
@@ -640,7 +662,10 @@ impl<K, V> JavaHashMap<K, V> {
     }
 
     /// `TreeNode.removeTreeNode` for node `p` (already found in its bin).
-    #[allow(clippy::too_many_lines, reason = "a line-by-line transcription of the JDK method")]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "a line-by-line transcription of the JDK method"
+    )]
     fn remove_tree_node(&mut self, p: u32, movable: bool) {
         let n = self.table.len();
         if n == 0 {
@@ -752,7 +777,11 @@ impl<K, V> JavaHashMap<K, V> {
             node.right = NIL;
             node.parent = NIL;
         }
-        let r = if self.node(p).red { root } else { self.balance_deletion(root, replacement) };
+        let r = if self.node(p).red {
+            root
+        } else {
+            self.balance_deletion(root, replacement)
+        };
         if replacement == p {
             // Detach.
             let pp = self.node(p).parent;
@@ -1058,7 +1087,6 @@ impl<K, V> JavaHashMap<K, V> {
     }
 }
 
-
 /// Where a key belongs in its bin: an existing node, or a new node to link in.
 enum Slot {
     /// The key is already in the node.
@@ -1102,7 +1130,11 @@ impl<K: JavaKey, V> JavaHashMap<K, V> {
         if self.table.is_empty() {
             // Pre-size.
             let dt = (s as f64 / f64::from(self.load_factor)).ceil();
-            let t = if dt < MAXIMUM_CAPACITY as f64 { dt as i32 } else { MAXIMUM_CAPACITY as i32 };
+            let t = if dt < MAXIMUM_CAPACITY as f64 {
+                dt as i32
+            } else {
+                MAXIMUM_CAPACITY as i32
+            };
             if t > self.threshold {
                 self.threshold = table_size_for(t);
             }
@@ -1166,7 +1198,11 @@ impl<K: JavaKey, V> JavaHashMap<K, V> {
         Q: Equivalent<K> + ?Sized,
     {
         let e = self.get_node(key);
-        if e == NIL { None } else { Some(&mut self.node_mut(e).value) }
+        if e == NIL {
+            None
+        } else {
+            Some(&mut self.node_mut(e).value)
+        }
     }
 
     /// The stored key and its value for `key`.
@@ -1458,8 +1494,9 @@ impl<K: JavaKey, V> JavaHashMap<K, V> {
     /// `AbstractMap.hashCode`: the sum of `key.hashCode() ^ value.hashCode()` over the
     /// entries, with `value_hash` giving the values' Java hash codes.
     pub fn java_hash_code(&self, value_hash: impl Fn(&V) -> i32) -> i32 {
-        self.iter()
-            .fold(0i32, |sum, (k, v)| sum.wrapping_add(k.java_hash_code() ^ value_hash(v)))
+        self.iter().fold(0i32, |sum, (k, v)| {
+            sum.wrapping_add(k.java_hash_code() ^ value_hash(v))
+        })
     }
 }
 
@@ -1542,7 +1579,10 @@ mod tests {
     fn iterates_in_bucket_order() {
         // Expected orders printed by Java 25's HashMap for the same insertions.
         let map = map_of(&["pos", "state", "nbt", "DataVersion", "id", "Count"]);
-        assert_eq!(keys(&map), ["nbt", "pos", "state", "DataVersion", "id", "Count"]);
+        assert_eq!(
+            keys(&map),
+            ["nbt", "pos", "state", "DataVersion", "id", "Count"]
+        );
         assert_eq!(map.capacity(), 16);
     }
 
@@ -1573,8 +1613,8 @@ mod tests {
     #[test]
     fn colliding_keys_become_a_tree_and_stay_findable() {
         let strings = colliding(5);
-        let keys: Vec<&str> = strings.iter().map(String::as_str).collect();
-        let mut map = map_of(&keys);
+        let names: Vec<&str> = strings.iter().map(String::as_str).collect();
+        let mut map = map_of(&names);
         assert_eq!(map.len(), 32);
         assert_eq!(map.capacity(), 64);
         // Java 25's order: the tree root first, then each node after its tree parent.
@@ -1613,14 +1653,14 @@ mod tests {
             "AaBBAaAaBB",
         ];
         assert_eq!(keys(&map), java);
-        for (i, key) in keys.iter().enumerate() {
+        for (i, key) in names.iter().enumerate() {
             assert_eq!(map.get(*key), Some(&i32::try_from(i).unwrap()));
         }
-        for key in &keys[..28] {
+        for key in &names[..28] {
             assert!(map.remove(*key).is_some());
         }
-        assert_eq!(keys.len() - 28, map.len());
-        for key in &keys[28..] {
+        assert_eq!(names.len() - 28, map.len());
+        for key in &names[28..] {
             assert!(map.contains_key(*key));
         }
     }

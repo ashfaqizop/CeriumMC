@@ -128,7 +128,14 @@ public class JdkCharData {
         out.append("/// `toString()` with underscores replaced by spaces (as `Character.getName` uses it).\n");
         out.append("pub(super) static BLOCKS: [(u32, u32, &str); ").append(blocks.size()).append("] = [\n");
         for (Object[] b : blocks) {
-            out.append("    (" + hex((int) b[0]) + ", " + hex((int) b[1]) + ", \"" + b[2] + "\"),\n");
+            String inner = hex((int) b[0]) + ", " + hex((int) b[1]) + ", \"" + b[2] + "\"";
+            String entry = "    (" + inner + "),";
+            if (inner.length() > 60) {
+                // rustfmt's layout for a tuple whose items exceed its 60-column width.
+                entry = "    (\n        " + hex((int) b[0]) + ",\n        " + hex((int) b[1])
+                    + ",\n        \"" + b[2] + "\",\n    ),";
+            }
+            out.append(entry).append('\n');
         }
         out.append("];\n\n");
 
