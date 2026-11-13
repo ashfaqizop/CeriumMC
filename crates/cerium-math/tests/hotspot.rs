@@ -1,14 +1,15 @@
 //! Replays `java.lang.Math` results recorded from HotSpot (JDK 25.0.1, x86_64) in CI (see
 //! `parity/golden/JMathMain.java`) against [`cerium_math::hotspot`], bit for bit.
 //!
-//! Unlike the other golden tests, NaN results of the HotSpot ports must match exactly too:
-//! they model x86 NaN rules, so they reproduce HotSpot's NaN bit patterns on every platform.
-//! The `StrictMath`-backed functions (`asin`, `acos`, `log1p`, `atan2`: Java's `FdLibm`, here
-//! the `libm` crate) must match exactly except for NaN payloads.
+//! Unlike the other golden tests, NaN results must match exactly too: the ports model x86 NaN
+//! rules, so they reproduce Java's NaN bit patterns on every platform. This covers the HotSpot
+//! intrinsics ([`cerium_math::hotspot`]) and the `StrictMath` functions vanilla calls
+//! ([`cerium_math::fdlibm`]).
 
 use std::collections::BTreeMap;
 
 use cerium_golden::{Value, cpu_vendor, load};
+use cerium_math::fdlibm;
 use cerium_math::hotspot::{self, Vendor};
 
 /// How many mismatches are printed in full.
@@ -32,11 +33,11 @@ fn hotspot_math_matches_the_jdk() {
             "jm.log" => vendor.log(x),
             "jm.log10" => vendor.log10(x),
             "jm.pow" => vendor.pow(x, case.double(1)),
-            // StrictMath-backed (Java's FdLibm), computed with the libm crate.
-            "jm.asin" => libm::asin(x),
-            "jm.acos" => libm::acos(x),
-            "jm.log1p" => libm::log1p(x),
-            "jm.atan2" => libm::atan2(x, case.double(1)),
+            // StrictMath-backed (Java's FdLibm).
+            "jm.asin" => fdlibm::asin(x),
+            "jm.acos" => fdlibm::acos(x),
+            "jm.log1p" => fdlibm::log1p(x),
+            "jm.atan2" => fdlibm::atan2(x, case.double(1)),
             other => {
                 *not_ported.entry(other).or_default() += 1;
                 continue;
@@ -46,14 +47,7 @@ fn hotspot_math_matches_the_jdk() {
         let Value::Double(expected) = case.expected[0] else {
             panic!("line {}: expected a double result", case.line);
         };
-        // The HotSpot ports model x86 NaN rules exactly. The libm-backed functions use the host
-        // CPU's NaNs, whose payloads vanilla never observes (writeDouble canonicalizes NaN).
-        let fdlibm = matches!(
-            case.op.as_str(),
-            "jm.asin" | "jm.acos" | "jm.log1p" | "jm.atan2"
-        );
-        let both_nan = actual.is_nan() && expected.is_nan();
-        if actual.to_bits() != expected.to_bits() && !(fdlibm && both_nan) {
+        if actual.to_bits() != expected.to_bits() {
             failures.push(format!(
                 "line {}: {} d:{:016x}\n    hotspot:  d:{:016x}\n    ceriummc: d:{:016x}",
                 case.line,

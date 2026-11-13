@@ -8,7 +8,7 @@
 use std::f64::consts::{FRAC_PI_2, PI as PI_F64};
 use std::sync::OnceLock;
 
-use crate::java;
+use crate::{fdlibm, hotspot, java};
 
 /// `(float) Math.PI`.
 pub const PI: f32 = PI_F64 as f32;
@@ -55,21 +55,20 @@ pub fn sin_table() -> &'static [f32] {
     static TABLE: OnceLock<Box<[f32]>> = OnceLock::new();
     TABLE.get_or_init(|| {
         (0..SIN_QUANTIZATION)
-            .map(|i| libm::sin(i as f64 / SIN_SCALE) as f32)
+            .map(|i| hotspot::sin(i as f64 / SIN_SCALE) as f32)
             .collect()
     })
 }
 
-/// `(ASIN_TAB, COS_TAB)`: `Math.asin(i / 256)` and `Math.cos` of that, for `i` in `0..=256`.
-///
-/// The values are embedded exactly as HotSpot on x86_64 computes them (see
-/// `parity/tables/AtanTables.java`): its `Math.cos` is not reproducible by any portable
-/// implementation (entry 61 is not even correctly rounded).
+/// `(ASIN_TAB, COS_TAB)`: `Math.asin(i / 256.0)` and `Math.cos` of that, for `i` in `0..=256`,
+/// computed as vanilla's static initializer does: `Math.asin` is `StrictMath` ([`fdlibm`]) and
+/// `Math.cos` the HotSpot intrinsic ([`hotspot`]), which is not correctly rounded (entry 61).
 fn atan_tables() -> &'static AtanTables {
     static TABLES: OnceLock<AtanTables> = OnceLock::new();
     TABLES.get_or_init(|| {
-        let asin = crate::atan_tables::ASIN_BITS.map(f64::from_bits);
-        let cos = crate::atan_tables::COS_BITS.map(f64::from_bits);
+        let entry = |i: usize| fdlibm::asin(i as f64 / 256.0);
+        let asin: [f64; ATAN_TABLE_SIZE] = std::array::from_fn(entry);
+        let cos = asin.map(hotspot::cos);
         (asin, cos)
     })
 }
