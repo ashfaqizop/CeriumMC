@@ -48,11 +48,19 @@ boots in CI.
 
 Delivered in three CI-verified steps:
 
-- **2.1 Math & RNG** 🟨: all of vanilla's `Mth` (lookup-table trigonometry, rounding, angle
-  wrapping, interpolation, positional seeds) and **every RNG**: the three LCG flavours,
-  Xoroshiro128++, `WorldgenRandom` seeding, positional factories and `RandomSupport`. Also MD5
-  and Java's `String.hashCode`. Golden data is recorded from the real 26.3 server in CI and
-  replayed on x86_64, ARM64, ARMv7, Windows and macOS.
+- **2.1 Math & RNG** ✅ (2026-11-13): all of vanilla's `Mth` (lookup-table trigonometry,
+  rounding, angle wrapping, interpolation, positional seeds) and **every RNG**: the three LCG
+  flavours, Xoroshiro128++, `WorldgenRandom` seeding, positional factories and `RandomSupport`.
+  Also MD5 and Java's `String.hashCode`.
+  - `java.lang.Math` as Java 25 computes it on x86_64: exact ports of the HotSpot intrinsics
+    (`sin`, `cos`, `exp`, `log`, `log10`, `pow`), including the CPU-vendor-specific `RCPPS`
+    results (Intel by default, AMD selectable), and of `FdLibm` (`asin`, `acos`, `atan`,
+    `atan2`, `hypot`, `log1p`), with x86 NaN bits on every host.
+  - Java's integer and float helpers (`round`, `clamp`, `*Exact`, `nextUp`, ...) and the
+    `org.joml.Math` methods vanilla calls.
+  - Golden data is recorded from the real 26.3 server and Java 25 in CI and replayed bit for
+    bit on Intel and AMD x86_64, ARM64, ARMv7, Windows and macOS.
+  - Still to come: HotSpot `tan` (no 26.3 call sites), ported after 2.3.
 - **2.2 NBT** ⬜: binary (file and network forms), Modified UTF-8, size and depth limits, and
   SNBT parsing and printing.
 - **2.3 Wire & core types** ⬜: VarInt/VarLong, strings, identifiers, UUIDs, block, section
