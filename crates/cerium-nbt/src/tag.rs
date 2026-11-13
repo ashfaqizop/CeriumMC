@@ -559,6 +559,24 @@ impl<'a> IntoIterator for &'a ListTag {
     }
 }
 
+impl<'a> IntoIterator for &'a mut ListTag {
+    type Item = &'a mut Tag;
+    type IntoIter = std::slice::IterMut<'a, Tag>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.list.iter_mut()
+    }
+}
+
+impl<'a> IntoIterator for &'a CompoundTag {
+    type Item = (&'a JString, &'a Tag);
+    type IntoIter = cerium_java::hash_map::Iter<'a, JString, Tag>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.tags.iter()
+    }
+}
+
 impl FromIterator<Tag> for ListTag {
     fn from_iter<I: IntoIterator<Item = Tag>>(iter: I) -> Self {
         Self {
@@ -639,6 +657,7 @@ impl CompoundTag {
     }
 
     /// The entries in iteration order (`entrySet()`).
+    #[must_use]
     pub fn iter(&self) -> cerium_java::hash_map::Iter<'_, JString, Tag> {
         self.tags.iter()
     }
@@ -892,7 +911,7 @@ mod tests {
         );
         let mut compound = CompoundTag::new();
         compound.put_int("a", 5);
-        assert_eq!(compound.java_hash_code(), 97 ^ 5);
+        assert_eq!(compound.java_hash_code(), 0x61 ^ 5);
     }
 
     #[test]

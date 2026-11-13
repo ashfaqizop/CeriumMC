@@ -564,6 +564,11 @@ fn builtin_ids() -> cerium_packrat::Suggestions {
 }
 
 /// `SnbtGrammar.createParser(ops)`.
+///
+/// # Panics
+///
+/// The rules' actions panic only on a value missing where vanilla would throw a
+/// `NullPointerException` or `IllegalArgumentException`, which the grammar never allows.
 #[allow(
     clippy::too_many_lines,
     reason = "a rule-for-rule transcription of vanilla's grammar"
@@ -865,13 +870,11 @@ pub fn create_parser<O: SnbtOps>(ops: O) -> Grammar<O::Value> {
             return Some(code_point_string(code_point as u32));
         }
         let name = scope.get_or_throw(string_unicode_name);
-        match character::code_point_of(&name) {
-            Some(code_point) => Some(code_point_string(code_point)),
-            None => {
-                state.error_here(errors::invalid_character_name());
-                None
-            }
-        }
+        let Some(code_point) = character::code_point_of(&name) else {
+            state.error_here(errors::invalid_character_name());
+            return None;
+        };
+        Some(code_point_string(code_point))
     });
 
     let string_plain_contents: Atom<JString> = Atom::of("string_plain_contents");
@@ -1340,10 +1343,7 @@ mod tests {
         // Vanilla reports the first error recorded at the furthest position: for "012" the
         // float rule's missing '.' at 3 comes before the leading-zero error at 3.
         assert_eq!(error("012"), ("argument.literal.incorrect", 3));
-        assert_eq!(
-            error("-0x1"),
-            ("argument.literal.incorrect", 4)
-        );
+        assert_eq!(error("-0x1"), ("argument.literal.incorrect", 4));
         // The float fails (infinite), so the integer 1 is parsed and "e999" is trailing data.
         assert_eq!(error("1e999"), ("argument.nbt.trailing", 1));
     }

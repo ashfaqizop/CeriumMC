@@ -60,6 +60,10 @@ enum Frame {
 }
 
 /// Starts loading a value: a finished value, or `None` after opening a container frame.
+#[allow(
+    clippy::too_many_lines,
+    reason = "one arm per tag type, as in vanilla's TagType.load methods"
+)]
 fn begin(
     type_id: i8,
     input: &mut impl DataInput,
@@ -221,17 +225,16 @@ fn load_with_stack(
             }
             None => unreachable!("the root value is finished first"),
         };
-        match next {
-            Some(type_id) => finished = begin(type_id, input, accounter, stack)?,
-            None => {
-                // The container is complete: `finally { accounter.popDepth(); }`.
-                let frame = stack.pop().expect("an open container");
-                accounter.pop_depth()?;
-                finished = Some(match frame {
-                    Frame::List { list, .. } => Tag::List(list),
-                    Frame::Compound { compound, .. } => Tag::Compound(compound),
-                });
-            }
+        if let Some(type_id) = next {
+            finished = begin(type_id, input, accounter, stack)?;
+        } else {
+            // The container is complete: `finally { accounter.popDepth(); }`.
+            let frame = stack.pop().expect("an open container");
+            accounter.pop_depth()?;
+            finished = Some(match frame {
+                Frame::List { list, .. } => Tag::List(list),
+                Frame::Compound { compound, .. } => Tag::Compound(compound),
+            });
         }
     }
 }
