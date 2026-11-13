@@ -470,7 +470,7 @@ fn accept_compound(
     compound: &CompoundTag,
     visitor: &mut (impl StreamTagVisitor + ?Sized),
 ) -> ValueResult {
-    for (key, value) in compound.iter() {
+    for (key, value) in compound {
         let type_id = value.id() as i8;
         match visitor.visit_entry_type(type_id) {
             EntryResult::Halt => return ValueResult::Halt,

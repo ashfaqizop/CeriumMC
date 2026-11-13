@@ -277,7 +277,7 @@ pub fn write(tag: &Tag, output: &mut impl DataOutput) -> Result<(), NbtError> {
             Ok(())
         }
         Tag::Compound(compound) => {
-            for (name, value) in compound.iter() {
+            for (name, value) in compound {
                 write_named_tag(name, value, output)?;
             }
             output.write_byte(0)
