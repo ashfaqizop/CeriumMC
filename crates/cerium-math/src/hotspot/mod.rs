@@ -17,6 +17,13 @@
 //! The transcribed stubs are Copyright Intel Corporation and others, GPL-2.0-only; each module
 //! keeps the original notice.
 
+#[allow(
+    dead_code,
+    reason = "shared by stubs that are not ported yet"
+)]
+mod constants;
+mod exp;
+mod exp_tables;
 mod log;
 mod log_tables;
 mod rcp;
@@ -46,6 +53,12 @@ pub fn vendor() -> Vendor {
         1 => Vendor::Amd,
         _ => Vendor::Intel,
     }
+}
+
+/// `Math.exp(x)`, exactly as HotSpot computes it on x86_64 (the same for every vendor).
+#[must_use]
+pub fn exp(x: f64) -> f64 {
+    exp::exp(x)
 }
 
 /// `Math.log(x)`, exactly as HotSpot computes it on x86_64, for the [`vendor`].
@@ -104,11 +117,45 @@ mod tests {
     }
 
     #[test]
+    fn exp_special_values() {
+        assert_eq!(exp(0.0), 1.0);
+        assert_eq!(exp(-0.0), 1.0);
+        assert_eq!(exp(f64::INFINITY), f64::INFINITY);
+        assert_eq!(exp(f64::NEG_INFINITY).to_bits(), 0);
+        assert_eq!(exp(1000.0), f64::INFINITY);
+        assert_eq!(exp(-1000.0).to_bits(), 0);
+        assert_eq!(exp(f64::MIN_POSITIVE), 1.0);
+        let nan = f64::from_bits(0xFFF0_0000_0000_0001);
+        assert_eq!(exp(nan).to_bits(), 0xFFF8_0000_0000_0001);
+    }
+
+    #[test]
+    fn exp_close_to_the_true_exponential() {
+        let close = |a: f64, b: f64| (a - b).abs() <= a.abs() * 4.0 * f64::EPSILON;
+        let points = [-700.0, -1.5, -1e-10, 1e-10, 0.5, 1.0, 2.0, 709.7];
+        for x in points {
+            assert!(close(exp(x), libm::exp(x)), "exp {x}");
+        }
+    }
+
+    #[test]
     fn close_to_the_true_logarithm() {
         // The stubs are accurate to well under 1 ULP; the golden test checks exact bits.
         let close = |a: f64, b: f64| (a - b).abs() <= a.abs() * 4.0 * f64::EPSILON;
         for vendor in VENDORS {
-            for x in [1e-310, 1e-300, 0.1, 0.5, 0.75, 1.5, 2.0, 3.0, 1e10, 1e300, f64::MAX] {
+            for x in [
+                1e-310,
+                1e-300,
+                0.1,
+                0.5,
+                0.75,
+                1.5,
+                2.0,
+                3.0,
+                1e10,
+                1e300,
+                f64::MAX,
+            ] {
                 assert!(close(vendor.log(x), libm::log(x)), "log {x}");
                 assert!(close(vendor.log10(x), libm::log10(x)), "log10 {x}");
             }

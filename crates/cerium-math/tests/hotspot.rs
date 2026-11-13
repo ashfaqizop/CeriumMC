@@ -7,7 +7,7 @@
 use std::collections::BTreeMap;
 
 use cerium_golden::{Value, cpu_vendor, load};
-use cerium_math::hotspot::Vendor;
+use cerium_math::hotspot::{self, Vendor};
 
 /// How many mismatches are printed in full.
 const MAX_SHOWN: usize = 25;
@@ -24,6 +24,7 @@ fn hotspot_math_matches_the_jdk() {
     for case in &cases {
         let x = case.double(0);
         let actual = match case.op.as_str() {
+            "jm.exp" => hotspot::exp(x),
             "jm.log" => vendor.log(x),
             "jm.log10" => vendor.log10(x),
             other => {
@@ -51,7 +52,10 @@ fn hotspot_math_matches_the_jdk() {
     }
     let failed = failures.len();
     eprintln!("jmath.txt ({vendor:?} RCPPS): {checked} cases checked, {failed} mismatched");
-    assert_ne!(checked, 0, "jmath.txt has no cases for the ported functions");
+    assert_ne!(
+        checked, 0,
+        "jmath.txt has no cases for the ported functions"
+    );
     assert!(
         failures.is_empty(),
         "{failed} of {checked} HotSpot math cases differ:\n{}",

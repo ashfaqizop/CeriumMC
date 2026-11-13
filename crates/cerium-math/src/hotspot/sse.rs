@@ -71,6 +71,12 @@ impl Xmm {
         self.0[1] &= other.0[1];
     }
 
+    /// `pxor`/`xorpd`.
+    pub(crate) fn pxor(&mut self, other: Self) {
+        self.0[0] ^= other.0[0];
+        self.0[1] ^= other.0[1];
+    }
+
     /// `psrlq xmm, imm`: logical right shift of each 64-bit lane.
     pub(crate) fn psrlq(&mut self, shift: u32) {
         self.0 = self.0.map(|lane| lane.checked_shr(shift).unwrap_or(0));
@@ -81,10 +87,38 @@ impl Xmm {
         self.0 = self.0.map(|lane| lane.checked_shl(shift).unwrap_or(0));
     }
 
+    /// `psllq xmm, xmm`: left shift of each 64-bit lane by the count in the low 64 bits of
+    /// `count`; counts above 63 clear the lanes.
+    pub(crate) fn psllq_by(&mut self, count: Self) {
+        let shift = u32::try_from(count.0[0]).unwrap_or(u32::MAX);
+        self.psllq(shift);
+    }
+
+    /// `paddq`: wrapping add of each 64-bit lane.
+    pub(crate) fn paddq(&mut self, other: Self) {
+        self.0[0] = self.0[0].wrapping_add(other.0[0]);
+        self.0[1] = self.0[1].wrapping_add(other.0[1]);
+    }
+
+    /// `unpcklpd`: `[self.low, other.low]`.
+    pub(crate) fn unpcklpd(&mut self, other: Self) {
+        self.0[1] = other.0[0];
+    }
+
+    /// `unpckhpd`: `[self.high, other.high]`.
+    pub(crate) fn unpckhpd(&mut self, other: Self) {
+        self.0 = [self.0[1], other.0[1]];
+    }
+
     /// The four 32-bit elements, lowest first.
     fn dwords(self) -> [u32; 4] {
         let [low, high] = self.0;
-        [low as u32, (low >> 32) as u32, high as u32, (high >> 32) as u32]
+        [
+            low as u32,
+            (low >> 32) as u32,
+            high as u32,
+            (high >> 32) as u32,
+        ]
     }
 
     fn from_dwords(d: [u32; 4]) -> Self {
@@ -108,6 +142,26 @@ impl Xmm {
             a[2].wrapping_add(b[2]),
             a[3].wrapping_add(b[3]),
         ]);
+    }
+
+    /// `psubd`: wrapping subtract of each 32-bit element.
+    pub(crate) fn psubd(&mut self, other: Self) {
+        let a = self.dwords();
+        let b = other.dwords();
+        *self = Self::from_dwords([
+            a[0].wrapping_sub(b[0]),
+            a[1].wrapping_sub(b[1]),
+            a[2].wrapping_sub(b[2]),
+            a[3].wrapping_sub(b[3]),
+        ]);
+    }
+
+    /// `psrad xmm, imm`: arithmetic right shift of each 32-bit element; counts above 31 fill
+    /// each element with its sign bit.
+    pub(crate) fn psrad(&mut self, shift: u32) {
+        let shift = shift.min(31);
+        let sar = |d: u32| (d.cast_signed() >> shift).cast_unsigned();
+        *self = Self::from_dwords(self.dwords().map(sar));
     }
 
     /// `pshufd dst, src, imm`: each destination element selects a source element.
@@ -134,7 +188,11 @@ impl Xmm {
             b | QUIET
         } else {
             let product = x * y;
-            if product.is_nan() { 0xFFC0_0000 } else { product.to_bits() }
+            if product.is_nan() {
+                0xFFC0_0000
+            } else {
+                product.to_bits()
+            }
         };
         *self = Self::from_dwords(d);
     }
@@ -165,6 +223,12 @@ impl Xmm {
         self.0[1] = x86(self.0[1], other.0[1], |a, b| a + b);
     }
 
+    /// `subpd`.
+    pub(crate) fn subpd(&mut self, other: Self) {
+        self.0[0] = x86(self.0[0], other.0[0], |a, b| a - b);
+        self.0[1] = x86(self.0[1], other.0[1], |a, b| a - b);
+    }
+
     /// `mulpd`.
     pub(crate) fn mulpd(&mut self, other: Self) {
         self.0[0] = x86(self.0[0], other.0[0], |a, b| a * b);
@@ -182,7 +246,7 @@ impl Xmm {
     }
 }
 
-/// The x86 "QNaN floating-point indefinite": the NaN SSE produces for invalid operations.
+/// The x86 "`QNaN` floating-point indefinite": the NaN SSE produces for invalid operations.
 const DEFAULT_NAN: u64 = 0xFFF8_0000_0000_0000;
 
 /// Applies a double operation with x86 SSE NaN rules, so results are bit-identical on every
@@ -199,7 +263,11 @@ fn x86(a: u64, b: u64, op: impl Fn(f64, f64) -> f64) -> u64 {
         return b | QUIET;
     }
     let result = op(x, y);
-    if result.is_nan() { DEFAULT_NAN } else { result.to_bits() }
+    if result.is_nan() {
+        DEFAULT_NAN
+    } else {
+        result.to_bits()
+    }
 }
 
 /// Reads the little-endian 64-bit word at `juint` index `index` of a stub table.
