@@ -33,6 +33,7 @@ name = "cerium-nbt"
 version = "0.1.0"
 dependencies = [
  "cerium-brigadier",
+ "cerium-golden",
  "cerium-java",
  "cerium-packrat",
 ]

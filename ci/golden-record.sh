@@ -22,6 +22,7 @@ java -Xmx2G -cp .vanilla/golden-classes golden.JMathMain .vanilla/golden
 java -Xmx2G -cp .vanilla/golden-classes golden.JLangMain .vanilla/golden
 java -Xmx2G -cp .vanilla/golden-classes golden.JStdMain .vanilla/golden
 java -Xmx2G -cp ".vanilla/golden-classes:$classpath" golden.JomlMain .vanilla/golden
+java -Xmx2G -cp ".vanilla/golden-classes:$classpath" golden.NbtMain .vanilla/golden
 ci/cpu-vendor.sh > .vanilla/golden/cpu-vendor.txt
 echo "CPU vendor: $(cat .vanilla/golden/cpu-vendor.txt)"
 ls -la .vanilla/golden
