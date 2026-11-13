@@ -438,6 +438,10 @@ enum Scanned {
 /// # Errors
 ///
 /// As Java's `NumberFormatException`.
+///
+/// # Panics
+///
+/// Never: decimal digits that passed Java's syntax check always parse.
 pub fn parse_double(s: &JString) -> Result<f64, NumberFormatError> {
     Ok(match scan(s, &BINARY_64)? {
         Scanned::Zero { negative } => sign(negative, 0.0),
@@ -469,6 +473,10 @@ pub fn parse_double(s: &JString) -> Result<f64, NumberFormatError> {
 /// # Errors
 ///
 /// As Java's `NumberFormatException`.
+///
+/// # Panics
+///
+/// Never: decimal digits that passed Java's syntax check always parse.
 pub fn parse_float(s: &JString) -> Result<f32, NumberFormatError> {
     Ok(match scan(s, &BINARY_32)? {
         Scanned::Zero { negative } => sign(negative, 0.0f64) as f32,

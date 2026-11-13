@@ -511,17 +511,15 @@ impl<K, V> JavaHashMap<K, V> {
         K: JavaKey,
     {
         let node = self.node(p);
-        if node.hash > x_hash {
-            -1
-        } else if node.hash < x_hash {
-            1
-        } else {
-            match x_key.java_compare(&node.key) {
-                Some(Ordering::Less) => -1,
+        match node.hash.cmp(&x_hash) {
+            Ordering::Greater => -1,
+            Ordering::Less => 1,
+            // Equal hashes: `compareTo`, else `tieBreakOrder` (class names, then identity hash
+            // codes), which places the new key first.
+            Ordering::Equal => match x_key.java_compare(&node.key) {
                 Some(Ordering::Greater) => 1,
-                // `tieBreakOrder`: equal class names, then identity hash codes.
                 _ => -1,
-            }
+            },
         }
     }
 
@@ -701,8 +699,7 @@ impl<K, V> JavaHashMap<K, V> {
             return;
         }
         let (pl, pr) = (self.node(p).left, self.node(p).right);
-        let replacement;
-        if pl != NIL && pr != NIL {
+        let replacement = if pl != NIL && pr != NIL {
             let mut s = pr;
             loop {
                 let sl = self.node(s).left;
@@ -753,14 +750,14 @@ impl<K, V> JavaHashMap<K, V> {
             } else {
                 self.node_mut(pp).right = s;
             }
-            replacement = if sr == NIL { p } else { sr };
+            if sr == NIL { p } else { sr }
         } else if pl != NIL {
-            replacement = pl;
+            pl
         } else if pr != NIL {
-            replacement = pr;
+            pr
         } else {
-            replacement = p;
-        }
+            p
+        };
         if replacement != p {
             let pp = self.node(p).parent;
             self.node_mut(replacement).parent = pp;

@@ -1,12 +1,12 @@
 //! The parts of the Java standard library (JDK 25) whose exact behaviour vanilla depends on.
 //!
-//! - [`JString`]: Java strings, which are UTF-16 and may hold unpaired surrogates.
-//! - [`mutf8`]: Modified UTF-8, the string encoding of `DataInput`/`DataOutput`.
-//! - [`JavaHashMap`]: `java.util.HashMap`, including its iteration order.
-//! - [`to_decimal`]: `Double.toString` and `Float.toString`.
-//! - [`number`]: the integer and floating-point parsers and their error messages.
-//! - [`character`]: `Character.isWhitespace`, `digit`, `getName` and `codePointOf`.
-//! - [`uuid`]: `UUID.fromString`.
+//! - [`JString`] holds Java strings, which are UTF-16 and may have unpaired surrogates.
+//! - [`mutf8`] is Modified UTF-8, the string encoding of `DataInput`/`DataOutput`.
+//! - [`JavaHashMap`] is `java.util.HashMap`, including its iteration order.
+//! - [`to_decimal`] has `Double.toString` and `Float.toString`.
+//! - [`number`] has the integer and floating-point parsers and their error messages.
+//! - [`character`] has `Character.isWhitespace`, `digit`, `getName` and `codePointOf`.
+//! - [`uuid`] has `UUID.fromString`.
 //!
 //! Each is a transcription of the JDK's source, verified against Java 25 by golden tests.
 

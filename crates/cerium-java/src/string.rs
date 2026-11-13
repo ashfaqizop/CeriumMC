@@ -435,6 +435,7 @@ mod tests {
             Some(3)
         );
         assert_eq!(JString::from("a{b}").index_of(u16::from(b'}'), 1), Some(3));
-        assert!(JString::from("é") == "é");
+        let accented = JString::from("é");
+        assert_eq!(accented, "é");
     }
 }
