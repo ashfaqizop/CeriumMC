@@ -3,6 +3,15 @@
 //! parsers, `Character`, `UUID.fromString`, Modified UTF-8 and `String`. Results must match
 //! exactly, including the messages of the exceptions Java throws.
 
+#![allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    reason = "golden arguments are Java ints converted to the Rust API's types"
+)]
+
+use std::fmt::Write as _;
+
 use cerium_golden::{Case, Report, Value, load};
 use cerium_java::{JString, JavaHashMap, character, mutf8, number, to_decimal, uuid};
 
@@ -206,10 +215,9 @@ fn run_map(pool: &[JString], script: &str) -> String {
             other => panic!("unknown map step {}", char::from(other)),
         }
     }
-    map.iter()
-        .map(|(k, v)| {
-            let index = pool.iter().position(|p| p == k).expect("pooled key");
-            format!("{index}={v},")
-        })
-        .collect()
+    map.iter().fold(String::new(), |mut order, (k, v)| {
+        let index = pool.iter().position(|p| p == k).expect("pooled key");
+        let _ = write!(order, "{index}={v},");
+        order
+    })
 }

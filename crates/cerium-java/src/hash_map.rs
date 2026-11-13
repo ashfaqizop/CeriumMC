@@ -138,7 +138,9 @@ fn spread(h: i32) -> i32 {
 
 /// `HashMap.tableSizeFor`: the smallest power of two at least `cap` (capped).
 fn table_size_for(cap: i32) -> i32 {
-    let n = (u32::MAX >> (cap.wrapping_sub(1) as u32).leading_zeros()) as i32;
+    // `-1 >>> numberOfLeadingZeros(cap - 1)`: Java masks the shift count to 5 bits, so a
+    // count of 32 (for `cap` 1) shifts by 0.
+    let n = u32::MAX.wrapping_shr((cap.wrapping_sub(1) as u32).leading_zeros()) as i32;
     if n < 0 {
         1
     } else if n as usize >= MAXIMUM_CAPACITY {
