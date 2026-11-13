@@ -171,6 +171,7 @@ pub fn acos(x: f64) -> f64 {
         PIO2_HI - (x - (PIO2_LO - x * r))
     } else if hx < 0 {
         // x < -0.5
+        #[allow(clippy::manual_midpoint, reason = "Java computes exactly (1.0 + x) * 0.5")]
         let z = (1.0 + x) * 0.5;
         let (p, q) = pq(z);
         let s = z.sqrt();
@@ -301,8 +302,8 @@ pub fn atan2(y: f64, x: f64) -> f64 {
     // when y = 0
     if (iy | ly) == 0 {
         match m {
-            0 | 1 => return y, // atan(+/-0, +anything) = +/-0
-            2 => return PI + TINY, // atan(+0, -anything) = pi
+            0 | 1 => return y,      // atan(+/-0, +anything) = +/-0
+            2 => return PI + TINY,  // atan(+0, -anything) = pi
             _ => return -PI - TINY, // atan(-0, -anything) = -pi
         }
     }
@@ -318,16 +319,16 @@ pub fn atan2(y: f64, x: f64) -> f64 {
     if ix == EXP_BITS {
         if iy == EXP_BITS {
             return match m {
-                0 => PI_O_4 + TINY, // atan(+INF, +INF)
-                1 => -PI_O_4 - TINY, // atan(-INF, +INF)
-                2 => 3.0 * PI_O_4 + TINY, // atan(+INF, -INF)
+                0 => PI_O_4 + TINY,        // atan(+INF, +INF)
+                1 => -PI_O_4 - TINY,       // atan(-INF, +INF)
+                2 => 3.0 * PI_O_4 + TINY,  // atan(+INF, -INF)
                 _ => -3.0 * PI_O_4 - TINY, // atan(-INF, -INF)
             };
         }
         return match m {
-            0 => 0.0, // atan(+..., +INF)
-            1 => -0.0, // atan(-..., +INF)
-            2 => PI + TINY, // atan(+..., -INF)
+            0 => 0.0,        // atan(+..., +INF)
+            1 => -0.0,       // atan(-..., +INF)
+            2 => PI + TINY,  // atan(+..., -INF)
             _ => -PI - TINY, // atan(-..., -INF)
         };
     }
@@ -350,8 +351,8 @@ pub fn atan2(y: f64, x: f64) -> f64 {
         atan((y / x).abs()) // safe to do y/x
     };
     match m {
-        0 => z, // atan(+, +)
-        1 => -z, // atan(-, +)
+        0 => z,                // atan(+, +)
+        1 => -z,               // atan(-, +)
         2 => PI - (z - PI_LO), // atan(+, -)
         _ => (z - PI_LO) - PI, // atan(-, -)
     }
@@ -411,11 +412,7 @@ pub fn log1p(x: f64) -> f64 {
             hu = hi(u);
             k = (hu >> 20) - 1023;
             // correction term
-            c = if k > 0 {
-                1.0 - (u - x)
-            } else {
-                x - (u - 1.0)
-            };
+            c = if k > 0 { 1.0 - (u - x) } else { x - (u - 1.0) };
             c /= u;
         } else {
             u = x;
